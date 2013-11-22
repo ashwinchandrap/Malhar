@@ -357,7 +357,7 @@ public class Application implements StreamingApplication
     //redisInput.setHost("localhost");
     //redisInput.setPort(6379);
     //redisInput.setRedisKeys("logstash");
-    
+
     // dynamically partition based on number of incoming tuples from the queue
     //dag.setAttribute(apacheLogInput, OperatorContext.INITIAL_PARTITION_COUNT, 2);
     //dag.setAttribute(apacheLogInput, OperatorContext.PARTITION_TPS_MIN, 1000);
@@ -382,13 +382,13 @@ public class Application implements StreamingApplication
      * Explode dimensions based on log types ( apache, mysql, syslog, etc)
      */
     DimensionTimeBucketSumOperator apacheDimensionOperator = getApacheDimensionTimeBucketSumOperator("ApacheLogDimension", dag);
-    dag.addStream("apache_dimension_in", apacheLogJsonToMap.outputMap, apacheDimensionOperator.in);
+    dag.addStream("apache_dimension_in", apacheLogJsonToMap.outputFlatMap, apacheDimensionOperator.in);
 
     DimensionTimeBucketSumOperator mysqlDimensionOperator = getMysqlDimensionTimeBucketSumOperator("MysqlLogDimension", dag);
-    dag.addStream("mysql_dimension_in", mysqlLogJsonToMap.outputMap, mysqlDimensionOperator.in);
+    dag.addStream("mysql_dimension_in", mysqlLogJsonToMap.outputFlatMap, mysqlDimensionOperator.in);
 
     DimensionTimeBucketSumOperator syslogDimensionOperator = getSyslogDimensionTimeBucketSumOperator("syslogLogDimension", dag);
-    dag.addStream("syslog_dimension_in", syslogLogJsonToMap.outputMap, syslogDimensionOperator.in);
+    dag.addStream("syslog_dimension_in", syslogLogJsonToMap.outputFlatMap, syslogDimensionOperator.in);
 
     //DimensionTimeBucketSumOperator systemDimensionOperator = getSystemDimensionTimeBucketSumOperator("systemLogDimension", dag);
     //dag.addStream("system_dimension_in", systemLogJsonToMap.outputMap, systemDimensionOperator.in);
