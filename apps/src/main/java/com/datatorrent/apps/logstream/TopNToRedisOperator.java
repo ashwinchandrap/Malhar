@@ -44,28 +44,33 @@ public class TopNToRedisOperator<K, V> extends BaseOperator
   }
 
   @InputPortFieldAnnotation(name = "input")
-  public final transient DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>> input = new DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>() {
+  public final transient DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>> input = new DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>()
+  {
     @Override
     public void process(HashMap<String, ArrayList<DimensionObject<String>>> tuple)
     {
       //HashMap<String, ArrayList<DimensionObject<String>>>
-      for (String dimensionKey: tuple.keySet()){
+      for (String dimensionKey : tuple.keySet()) {
         Integer dbIndex = dimensionToDbIndexMap.get(dimensionKey);
-        // set dbindex
-        ArrayList<DimensionObject<String>> topList = tuple.get(dimensionKey);
-        int numOuts = 0;
-        for (DimensionObject<String> item : topList) {
-          Map<Integer, String> out = new HashMap<Integer, String>();
-          String value = new StringBuilder(dbIndex).append("##").append(item.getVal()).append("##").append(item.getCount()).toString();
-          out.put(numOuts++, value);
-          outport.emit(out);
+        if (dbIndex != null) {
+          // set dbindex
+          ArrayList<DimensionObject<String>> topList = tuple.get(dimensionKey);
+          int numOuts = 0;
+          System.out.println("\ndbindex = " + dbIndex + "\n");
+          for (DimensionObject<String> item : topList) {
+            Map<String, String> out = new HashMap<String, String>();
+            String key = new StringBuilder(dbIndex.toString()).append("##").append(numOuts++).toString();
+            String value = new StringBuilder(item.getVal()).append("##").append(item.getCount()).toString();
+            //out.put(numOuts++, value);
+            out.put(key, value);
+            outport.emit(out);
+          }
         }
       }
 
     }
+
   };
-
   @OutputPortFieldAnnotation(name = "output")
-  public final transient DefaultOutputPort<Map<Integer, String>> outport = new DefaultOutputPort<Map<Integer, String>>();
-
+  public final transient DefaultOutputPort<Map<String, String>> outport = new DefaultOutputPort<Map<String, String>>();
 }

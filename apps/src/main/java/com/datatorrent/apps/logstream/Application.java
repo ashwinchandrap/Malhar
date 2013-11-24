@@ -519,7 +519,7 @@ public class Application implements StreamingApplication
     /*
      * write to redis
      */
-    RedisOutputOperator<Integer, String> redis = dag.addOperator("redisapachelog2", new RedisOutputOperator<Integer, String>());
+    RedisOutputOperator<String, String> redis = dag.addOperator("redisapachelog2", new RedisOutputOperator<String, String>());
 
     redis.setDatabase(15);
     TopNToRedisOperator<String, DimensionObject<String>> topNtoRedis = dag.addOperator("topNtoRedis", new TopNToRedisOperator<String, DimensionObject<String>>());
