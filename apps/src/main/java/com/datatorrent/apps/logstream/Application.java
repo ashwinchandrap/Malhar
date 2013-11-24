@@ -25,9 +25,12 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.DAG;
+import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.Operator.InputPort;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.contrib.redis.RedisBLPOPStringInputOperator;
+import com.datatorrent.contrib.redis.RedisNumberAggregateOutputOperator;
+import com.datatorrent.contrib.redis.RedisOutputOperator;
 import com.datatorrent.lib.algo.TopN;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.io.PubSubWebSocketOutputOperator;
@@ -38,6 +41,7 @@ import com.datatorrent.lib.stream.JsonByteArrayOperator;
 import com.datatorrent.lib.util.DimensionTimeBucketOperator;
 import com.datatorrent.lib.util.DimensionTimeBucketSumOperator;
 import java.net.URI;
+import java.util.*;
 import org.apache.commons.lang.StringUtils;
 
 /**
@@ -76,6 +80,12 @@ import org.apache.commons.lang.StringUtils;
  */
 public class Application implements StreamingApplication
 {
+  /**
+   * map used to map dimension keys to redis db index
+   * key --> dimension key set eg: 2,4
+   * value --> dbindex
+   */
+  private HashMap<String, Integer> dimensionToDbIndexMap = new HashMap<String, Integer>();
   private InputPort<Object> wsOutput(DAG dag, String operatorName)
   {
     String daemonAddress = dag.getValue(DAG.GATEWAY_ADDRESS);
@@ -95,8 +105,28 @@ public class Application implements StreamingApplication
     return operator.input;
   }
 
+  public InputPort<Map<String, Map<String, Number>>> getRedisOutput(String name, DAG dag, int dbIndex)
+  {
+    @SuppressWarnings("unchecked")
+    RedisNumberAggregateOutputOperator<String, Map<String, Number>> oper = dag.addOperator(name, RedisNumberAggregateOutputOperator.class);
+    oper.setDatabase(dbIndex);
+    return oper.input;
+  }
+
+
   public DimensionTimeBucketSumOperator getApacheDimensionTimeBucketSumOperator(String name, DAG dag)
   {
+    /**
+     *  top url counter > db 2 eg: 1, mydomain.com/about.php##3614 --> 2, count
+     *  top client ip counter > db 3 eg: 204.119.211.241##232 --> 1, count
+     * top client ip more than threshold > db 5 eg: 160.72.8.207##1030
+     *  top sum of bytes per ip > db 6 eg: 204.119.211.241##485318 --> 1, bytes
+     *  top 404 urls > db 7 eg: mydomain.com/services.php?serviceid=86##1 --> 2, 3, count
+     *  top 404 servers > db 8 eg: server6.mydomain.com:80##3 --> 0, 3, count (TODO: using host for now, will replace with server soon)
+     * total bytes > db 9 eg: 8179998
+     *  top server counter > db 10 eg: server9.mydomain.com:80##1058 --> 0, count (TODO: using host for now, will replace with server soon)
+     * view count (total number of requests) > db 11 eg: 4046
+     */
 
     DimensionTimeBucketSumOperator oper = dag.addOperator(name, DimensionTimeBucketSumOperator.class);
     oper.addDimensionKeyName("host");                   // 0
@@ -114,11 +144,13 @@ public class Application implements StreamingApplication
     // url
     Set<String> dimensionKey1 = new HashSet<String>();
     dimensionKey1.add("request");
+    dimensionToDbIndexMap.put("2", 2);
 
     // dimension set # 2
     // ip
     Set<String> dimensionKey2 = new HashSet<String>();
     dimensionKey2.add("clientip");
+    dimensionToDbIndexMap.put("1", 3);
 
     // dimension set # 3
     // url, ip
@@ -155,6 +187,26 @@ public class Application implements StreamingApplication
     Set<String> dimensionKey8 = new HashSet<String>();
     dimensionKey8.add("agentinfo.name");
 
+    // dimension set # 9
+    // host
+    Set<String> dimensionKey9 = new HashSet<String>();
+    dimensionKey9.add("host");
+    dimensionToDbIndexMap.put("0", 10);
+
+    // dimension set # 10
+    // request, response
+    Set<String> dimensionKey10 = new HashSet<String>();
+    dimensionKey10.add("request");
+    dimensionKey10.add("response");
+    dimensionToDbIndexMap.put("2,3", 7);
+
+    // dimension set # 11
+    // host, response
+    Set<String> dimensionKey11 = new HashSet<String>();
+    dimensionKey11.add("host");
+    dimensionKey11.add("response");
+    dimensionToDbIndexMap.put("0,3", 8);
+
     try {
       oper.addCombination(dimensionKey1);
       oper.addCombination(dimensionKey2);
@@ -164,6 +216,9 @@ public class Application implements StreamingApplication
       oper.addCombination(dimensionKey6);
       oper.addCombination(dimensionKey7);
       oper.addCombination(dimensionKey8);
+      oper.addCombination(dimensionKey9);
+      oper.addCombination(dimensionKey10);
+      oper.addCombination(dimensionKey11);
     } catch (NoSuchFieldException e) {
     }
 
@@ -176,6 +231,7 @@ public class Application implements StreamingApplication
     MultiWindowDimensionAggregation oper = dag.addOperator(name, MultiWindowDimensionAggregation.class);
     oper.setWindowSize(3);
     List<int[]> dimensionArrayList = new ArrayList<int[]>();
+    // 2...1...0...2,3...0,3
     int[] dimensionArray1 = {2};
     int[] dimensionArray2 = {1};
     int[] dimensionArray3 = {1, 2};
@@ -184,6 +240,10 @@ public class Application implements StreamingApplication
     int[] dimensionArray6 = {6, 7};
     int[] dimensionArray7 = {6};
     int[] dimensionArray8 = {7};
+    int[] dimensionArray9 = {0};
+    int[] dimensionArray10 = {2, 3};
+    int[] dimensioArray11 = {0, 3};
+
     //dimensionArrayList.add(dimensionArray_2);
     dimensionArrayList.add(dimensionArray1);
     dimensionArrayList.add(dimensionArray2);
@@ -193,6 +253,10 @@ public class Application implements StreamingApplication
     dimensionArrayList.add(dimensionArray6);
     dimensionArrayList.add(dimensionArray7);
     dimensionArrayList.add(dimensionArray8);
+    dimensionArrayList.add(dimensionArray9);
+    dimensionArrayList.add(dimensionArray10);
+    dimensionArrayList.add(dimensioArray11);
+
     oper.setDimensionArray(dimensionArrayList);
 
     oper.setTimeBucket("m");
@@ -428,7 +492,7 @@ public class Application implements StreamingApplication
     /*
      * Websocket output to UI from calculated aggregations
      */
-    dag.addStream("ApacheTopAggregations", apacheTopNOpr.top, wsOutput(dag, "apacheTopAggrs"), apacheConsole.input);
+    //dag.addStream("ApacheTopAggregations", apacheTopNOpr.top);
     dag.addStream("MysqlTopAggregations", mysqlTopNOpr.top, wsOutput(dag, "mysqlTopAggrs"), mysqlConsole.input);
     dag.addStream("SyslogTopAggregations", syslogTopNOpr.top, wsOutput(dag, "syslogTopAggrs"), syslogConsole.input);
     dag.addStream("SystemData", systemLogJsonToMap.outputMap, wsOutput(dag, "systemData"), logScoreOperator.systemLogs, systemConsole.input);
@@ -451,8 +515,18 @@ public class Application implements StreamingApplication
      * Console output for debugging purposes
      */
     //ConsoleOutputOperator console = dag.addOperator("console", ConsoleOutputOperator.class);
-    //dag.addStream("topn_output", apacheTopNOpr.top, console.input);
+    //dag.addStream("topn_output", apacheTopNOpr.top);entry.getValue()
+    /*
+     * write to redis
+     */
+    RedisOutputOperator<Integer, String> redis = dag.addOperator("redisapachelog2", new RedisOutputOperator<Integer, String>());
 
+    redis.setDatabase(15);
+    TopNToRedisOperator<String, DimensionObject<String>> topNtoRedis = dag.addOperator("topNtoRedis", new TopNToRedisOperator<String, DimensionObject<String>>());
+    topNtoRedis.setDimensionToDbIndexMap(dimensionToDbIndexMap);
+    dag.addStream("topn_redis", apacheTopNOpr.top, topNtoRedis.input, wsOutput(dag, "apacheTopAggrs"));
+    dag.addStream("consoleredisout", topNtoRedis.outport, redis.input, apacheConsole.input);
+    //dag.addStream("rand_console", topOccur.outport, redis.input);
   }
 
 }
