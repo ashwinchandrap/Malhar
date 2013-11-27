@@ -21,6 +21,7 @@ import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.lib.logs.DimensionObject;
+import com.datatorrent.lib.util.KeyValPair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,13 +30,14 @@ import java.util.Map;
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
-public class TopNToRedisOperator<K, V> extends BaseOperator
+public class AggregationsToRedisOperator<K, V> extends BaseOperator
 {
   private HashMap<String, Integer> dimensionToDbIndexMap;
+  private Integer dbIndex;
 
-  public HashMap<String, Integer> getDimensionToDbIndexMap()
+  public void setDbIndex(Integer dbIndex)
   {
-    return dimensionToDbIndexMap;
+    this.dbIndex = dbIndex;
   }
 
   public void setDimensionToDbIndexMap(HashMap<String, Integer> dimensionTodbIndexMap)
@@ -43,27 +45,28 @@ public class TopNToRedisOperator<K, V> extends BaseOperator
     this.dimensionToDbIndexMap = dimensionTodbIndexMap;
   }
 
-  @InputPortFieldAnnotation(name = "input")
-  public final transient DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>> input = new DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>()
+  @InputPortFieldAnnotation(name = "multiWindowDimensionInput", optional=true)
+  public final transient DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>> multiWindowDimensionInput = new DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>()
   {
     @Override
     public void process(HashMap<String, ArrayList<DimensionObject<String>>> tuple)
     {
       //HashMap<String, ArrayList<DimensionObject<String>>>
       for (String dimensionKey : tuple.keySet()) {
+        //System.out.println("\ndimensionKey = " + dimensionKey + "\n");
         Integer dbIndex = dimensionToDbIndexMap.get(dimensionKey);
         if (dbIndex != null) {
           // set dbindex
           ArrayList<DimensionObject<String>> topList = tuple.get(dimensionKey);
           int numOuts = 0;
-          System.out.println("\ndbindex = " + dbIndex + "\n");
+          //System.out.println("\ndbindex = " + dbIndex + "\n");
           for (DimensionObject<String> item : topList) {
             Map<String, String> out = new HashMap<String, String>();
             String key = new StringBuilder(dbIndex.toString()).append("##").append(numOuts++).toString();
             String value = new StringBuilder(item.getVal()).append("##").append(item.getCount()).toString();
             //out.put(numOuts++, value);
             out.put(key, value);
-            outport.emit(out);
+            keyValueMapOutput.emit(out);
           }
         }
       }
@@ -71,6 +74,26 @@ public class TopNToRedisOperator<K, V> extends BaseOperator
     }
 
   };
-  @OutputPortFieldAnnotation(name = "output")
-  public final transient DefaultOutputPort<Map<String, String>> outport = new DefaultOutputPort<Map<String, String>>();
+
+  @InputPortFieldAnnotation(name = "valueInput", optional=true)
+  public final transient DefaultInputPort<V> valueInput = new DefaultInputPort<V>()
+  {
+    @Override
+    public void process(V tuple)
+    {
+      if (dbIndex != null) {
+        String key = new StringBuilder(dbIndex.toString()).append("##").append("1").toString();
+        String value = tuple.toString();
+
+        keyValMapOutput.emit(new KeyValPair<String, String>(key, value));
+      }
+    }
+
+  };
+
+  @OutputPortFieldAnnotation(name = "keyValueMapOutput")
+  public final transient DefaultOutputPort<Map<String, String>> keyValueMapOutput = new DefaultOutputPort<Map<String, String>>();
+
+  @OutputPortFieldAnnotation(name = "keyValOutput")
+  public final transient DefaultOutputPort<KeyValPair<String, String>> keyValMapOutput = new DefaultOutputPort<KeyValPair<String, String>>();
 }
