@@ -133,7 +133,6 @@ public class Application implements StreamingApplication
     Set<String> dimensionKey2 = new HashSet<String>();
     dimensionKey2.add("clientip");
 
-
     // dimension set # 3
     // url, ip
     Set<String> dimensionKey3 = new HashSet<String>();
@@ -174,20 +173,17 @@ public class Application implements StreamingApplication
     Set<String> dimensionKey9 = new HashSet<String>();
     dimensionKey9.add("host");
 
-
     // dimension set # 10
     // request, response
     Set<String> dimensionKey10 = new HashSet<String>();
     dimensionKey10.add("request");
     dimensionKey10.add("response");
 
-
     // dimension set # 11
     // host, response
     Set<String> dimensionKey11 = new HashSet<String>();
     dimensionKey11.add("host");
     dimensionKey11.add("response");
-
 
     // dimension set # 12
     // host, response
@@ -416,7 +412,6 @@ public class Application implements StreamingApplication
   {
 
     DimensionTimeBucketSumOperator oper = dag.addOperator(name, DimensionTimeBucketSumOperator.class);
-    dag.setAttribute(DAG.DEBUG, true);
     oper.addDimensionKeyName("program");
     oper.addDimensionKeyName("pid");
 
@@ -504,7 +499,6 @@ public class Application implements StreamingApplication
     // set app name
     dag.setAttribute(DAG.APPLICATION_NAME, "Logstream Application");
     dag.setAttribute(DAG.STREAMING_WINDOW_SIZE_MILLIS, 1000);
-    dag.setAttribute(DAG.DEBUG, true);
 
     ConsoleOutputOperator mysqlConsole = dag.addOperator("MysqlConsole", ConsoleOutputOperator.class);
     ConsoleOutputOperator syslogConsole = dag.addOperator("SyslogConsole", ConsoleOutputOperator.class);

@@ -15,56 +15,60 @@
  */
 package com.datatorrent.apps.logstream;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.datatorrent.lib.logs.DimensionObject;
+import com.datatorrent.lib.util.KeyValPair;
+
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
-import com.datatorrent.lib.logs.DimensionObject;
-import com.datatorrent.lib.util.KeyValPair;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
+ * Operator that takes in aggregations and converts them to format accepted by redis output operator
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * @param <K> Key of aggregation
+ * @param <V> Value of aggregation
  */
 public class AggregationsToRedisOperator<K, V> extends BaseOperator
 {
-  private HashMap<String, Integer> dimensionToDbIndexMap;
-  private Integer dbIndex;
+  /**
+   * map used to map dimension keys to redis key index
+   * key --> dimension key set eg: "2,4"
+   * value --> keyIndex eg: "1"
+   */
+  private HashMap<String, Integer> dimensionToKeyIndexMap;
+  private Integer keyIndex;
 
-  public void setDbIndex(Integer dbIndex)
+  public void setKeyIndex(Integer keyIndex)
   {
-    this.dbIndex = dbIndex;
+    this.keyIndex = keyIndex;
   }
 
   public void setDimensionToDbIndexMap(HashMap<String, Integer> dimensionTodbIndexMap)
   {
-    this.dimensionToDbIndexMap = dimensionTodbIndexMap;
+    this.dimensionToKeyIndexMap = dimensionTodbIndexMap;
   }
 
-  @InputPortFieldAnnotation(name = "multiWindowDimensionInput", optional=true)
-  public final transient DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>> multiWindowDimensionInput = new DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>()
+  @InputPortFieldAnnotation(name = "multiWindowDimensionInput", optional = true)
+  public final transient DefaultInputPort<HashMap<K, ArrayList<DimensionObject<String>>>> multiWindowDimensionInput = new DefaultInputPort<HashMap<K, ArrayList<DimensionObject<String>>>>()
   {
     @Override
-    public void process(HashMap<String, ArrayList<DimensionObject<String>>> tuple)
+    public void process(HashMap<K, ArrayList<DimensionObject<String>>> tuple)
     {
-      //HashMap<String, ArrayList<DimensionObject<String>>>
-      for (String dimensionKey : tuple.keySet()) {
-        //System.out.println("\ndimensionKey = " + dimensionKey + "\n");
-        Integer dbIndex = dimensionToDbIndexMap.get(dimensionKey);
-        if (dbIndex != null) {
-          // set dbindex
+      for (K dimensionKey : tuple.keySet()) {
+        Integer keyInd = dimensionToKeyIndexMap.get(dimensionKey);
+        if (keyInd != null) {
           ArrayList<DimensionObject<String>> topList = tuple.get(dimensionKey);
           int numOuts = 0;
-          //System.out.println("\ndbindex = " + dbIndex + "\n");
           for (DimensionObject<String> item : topList) {
             Map<String, String> out = new HashMap<String, String>();
-            String key = new StringBuilder(dbIndex.toString()).append("##").append(numOuts++).toString();
+            String key = new StringBuilder(keyInd.toString()).append("##").append(numOuts++).toString();
             String value = new StringBuilder(item.getVal()).append("##").append(item.getCount()).toString();
-            //out.put(numOuts++, value);
             out.put(key, value);
             keyValueMapOutput.emit(out);
           }
@@ -74,26 +78,23 @@ public class AggregationsToRedisOperator<K, V> extends BaseOperator
     }
 
   };
-
-  @InputPortFieldAnnotation(name = "valueInput", optional=true)
+  @InputPortFieldAnnotation(name = "valueInput", optional = true)
   public final transient DefaultInputPort<V> valueInput = new DefaultInputPort<V>()
   {
     @Override
     public void process(V tuple)
     {
-      if (dbIndex != null) {
-        String key = new StringBuilder(dbIndex.toString()).append("##").append("1").toString();
+      if (keyIndex != null) {
+        String key = new StringBuilder(keyIndex.toString()).append("##").append("1").toString();
         String value = tuple.toString();
 
-        keyValMapOutput.emit(new KeyValPair<String, String>(key, value));
+        keyValPairOutput.emit(new KeyValPair<String, String>(key, value));
       }
     }
 
   };
-
   @OutputPortFieldAnnotation(name = "keyValueMapOutput")
   public final transient DefaultOutputPort<Map<String, String>> keyValueMapOutput = new DefaultOutputPort<Map<String, String>>();
-
-  @OutputPortFieldAnnotation(name = "keyValOutput")
-  public final transient DefaultOutputPort<KeyValPair<String, String>> keyValMapOutput = new DefaultOutputPort<KeyValPair<String, String>>();
+  @OutputPortFieldAnnotation(name = "keyValPairOutput")
+  public final transient DefaultOutputPort<KeyValPair<String, String>> keyValPairOutput = new DefaultOutputPort<KeyValPair<String, String>>();
 }

@@ -15,17 +15,21 @@
  */
 package com.datatorrent.apps.logstream;
 
+import java.util.Map;
+
+import com.esotericsoftware.kryo.NotNull;
+
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
-import com.esotericsoftware.kryo.NotNull;
-import java.util.Map;
 
 /**
+ * Sums the value of the selected dimension from the map over application window
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * @param <K> dimension to select from map
+ * @param <V> value to be summed
  */
 public class SumItemFromMapOperator<K, V> extends BaseOperator
 {
@@ -45,15 +49,14 @@ public class SumItemFromMapOperator<K, V> extends BaseOperator
     public void process(Map<K, V> tuple)
     {
       V val = tuple.get(sumDimension);
-      if ( val != null){
+      if (val != null) {
         sum += Long.valueOf((String)val);
       }
     }
 
   };
-
   @OutputPortFieldAnnotation(name = "output")
-	public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
+  public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
 
   @Override
   public void endWindow()
@@ -61,4 +64,5 @@ public class SumItemFromMapOperator<K, V> extends BaseOperator
     output.emit(String.valueOf(sum));
     sum = 0L;
   }
+
 }
