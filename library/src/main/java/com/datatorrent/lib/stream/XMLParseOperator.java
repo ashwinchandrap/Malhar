@@ -24,6 +24,7 @@ import javax.validation.constraints.NotNull;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.*;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -59,11 +60,12 @@ public class XMLParseOperator extends BaseOperator
   /*
    * user defined map for xpath lookup
    * key: name of the element
-   * value: element xpath to lookup
+   * value: element xpath XPathExpression to lookup
    */
   @NotNull
-  private Map<String, String> elementKeys;
-  private HashMap<String, String> elementMap;
+  private Map<String, XPathExpression> elementKeys;
+  private Map<String, XPathExpression> attributeKeys;
+  private HashMap<String, String> keyMap;
   private static final Logger logger = LoggerFactory.getLogger(XMLParseOperator.class);
 
   @Override
@@ -73,8 +75,9 @@ public class XMLParseOperator extends BaseOperator
       builderFactory = DocumentBuilderFactory.newInstance();
       builder = builderFactory.newDocumentBuilder();
       xPath = XPathFactory.newInstance().newXPath();
-      elementKeys = new HashMap<String, String>();
-      elementMap = new HashMap<String, String>();
+      elementKeys = new HashMap<String, XPathExpression>();
+      attributeKeys = new HashMap<String, XPathExpression>();
+      keyMap = new HashMap<String, String>();
     }
     catch (ParserConfigurationException ex) {
       logger.error("setup exception", ex);
@@ -91,7 +94,7 @@ public class XMLParseOperator extends BaseOperator
     public void process(byte[] t)
     {
       processTuple(t);
-      outputMap.emit(elementMap);
+      outputMap.emit(keyMap);
     }
 
   };
@@ -104,25 +107,26 @@ public class XMLParseOperator extends BaseOperator
   private void processTuple(byte[] xmlBytes)
   {
     Document xmlDocument = toXmlDocument(xmlBytes);
-    for (Map.Entry<String, String> entry : elementKeys.entrySet()) {
+    keyMap = new HashMap<String, String>();
+    try {
+      // node value
+      for (Map.Entry<String, XPathExpression> entry : elementKeys.entrySet()) {
+        XPathExpression expression = entry.getValue();
+        String key = entry.getKey();
+        Node node = (Node)expression.evaluate(xmlDocument, XPathConstants.NODE);
+        keyMap.put(key, node.getTextContent());
+      }
 
-      String element = entry.getValue();
-      String key = entry.getKey();
-      try {
-        if (element.contains("@")) {
-          // attribute value
-          String attr = (String)xPath.compile(element).evaluate(xmlDocument, XPathConstants.STRING);
-          elementMap.put(key, attr);
-        }
-        else {
-          // node value
-          Node node = (Node)xPath.compile(element).evaluate(xmlDocument, XPathConstants.NODE);
-          elementMap.put(key, node.getTextContent());
-        }
+      // attribute value
+      for (Map.Entry<String, XPathExpression> entry : attributeKeys.entrySet()) {
+        XPathExpression expression = entry.getValue();
+        String key = entry.getKey();
+        String attr = (String)expression.evaluate(xmlDocument, XPathConstants.STRING);
+        keyMap.put(key, attr);
       }
-      catch (XPathExpressionException ex) {
-        logger.error("error in xpath", ex);
-      }
+    }
+    catch (XPathExpressionException ex) {
+      logger.error("error in xpath", ex);
     }
 
   }
@@ -158,9 +162,20 @@ public class XMLParseOperator extends BaseOperator
    * @param element xpath key
    * @param name name to use for key
    */
-  public void addElementKeys(String element, String name)
+  public void addElementKeys(String name, String element)
   {
-    elementKeys.put(element, name);
+    try {
+      XPathExpression expression = xPath.compile(element);
+      if (element.contains("@")) {
+        elementKeys.put(name, expression);
+      }
+      else {
+        attributeKeys.put(name, expression);
+      }
+    }
+    catch (XPathExpressionException ex) {
+      logger.error("error compiling xpath", ex);
+    }
   }
 
   /**
