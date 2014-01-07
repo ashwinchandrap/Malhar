@@ -15,10 +15,10 @@
  */
 package com.datatorrent.lib.stream;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
 import javax.validation.constraints.NotNull;
 import javax.xml.parsers.DocumentBuilder;
@@ -32,9 +32,10 @@ import javax.xml.xpath.XPathFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import org.xml.sax.SAXException;
+import org.xml.sax.InputSource;
+
+import com.datatorrent.lib.parser.CsvParserOperator.ResuableStringReader;
 
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.Context.OperatorContext;
@@ -67,6 +68,8 @@ public class XMLParseOperator extends BaseOperator
   private Map<String, XPathExpression> attributeKeys;
   private HashMap<String, String> keyMap;
   private static final Logger logger = LoggerFactory.getLogger(XMLParseOperator.class);
+  private InputSource inputSource;
+  private ResuableStringReader reader;
 
   @Override
   public void setup(OperatorContext context)
@@ -78,6 +81,9 @@ public class XMLParseOperator extends BaseOperator
       elementKeys = new HashMap<String, XPathExpression>();
       attributeKeys = new HashMap<String, XPathExpression>();
       keyMap = new HashMap<String, String>();
+      inputSource = new InputSource();
+      reader = new ResuableStringReader();
+      inputSource.setCharacterStream(reader);
     }
     catch (ParserConfigurationException ex) {
       logger.error("setup exception", ex);
@@ -106,14 +112,15 @@ public class XMLParseOperator extends BaseOperator
    */
   private void processTuple(byte[] xmlBytes)
   {
-    Document xmlDocument = toXmlDocument(xmlBytes);
     keyMap = new HashMap<String, String>();
+    String xml = new String(xmlBytes);
     try {
       // node value
       for (Map.Entry<String, XPathExpression> entry : elementKeys.entrySet()) {
         XPathExpression expression = entry.getValue();
         String key = entry.getKey();
-        Node node = (Node)expression.evaluate(xmlDocument, XPathConstants.NODE);
+        reader.open(xml);
+        Node node = (Node)expression.evaluate(inputSource, XPathConstants.NODE);
         keyMap.put(key, node.getTextContent());
       }
 
@@ -121,39 +128,19 @@ public class XMLParseOperator extends BaseOperator
       for (Map.Entry<String, XPathExpression> entry : attributeKeys.entrySet()) {
         XPathExpression expression = entry.getValue();
         String key = entry.getKey();
-        String attr = (String)expression.evaluate(xmlDocument, XPathConstants.STRING);
+        reader.open(xml);
+        String attr = (String)expression.evaluate(inputSource, XPathConstants.STRING);
         keyMap.put(key, attr);
       }
     }
     catch (XPathExpressionException ex) {
       logger.error("error in xpath", ex);
     }
-
-  }
-
-  /**
-   * converts the given xml to document
-   *
-   * @param xmlBytes input xml byte array
-   * @return Document
-   */
-  private Document toXmlDocument(byte[] xmlBytes)
-  {
-    try {
-      Document xmlDocument;
-      ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(xmlBytes);
-      xmlDocument = builder.parse(byteArrayInputStream);
-
-      return xmlDocument;
-
-    }
-    catch (SAXException ex) {
-      logger.error("exception during converting xml string to document", ex);
-    }
     catch (IOException ex) {
       logger.error("exception during converting xml string to document", ex);
     }
-    return null;
+
+
   }
 
   /**
