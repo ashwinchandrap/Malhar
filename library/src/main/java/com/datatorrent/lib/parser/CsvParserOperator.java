@@ -69,7 +69,7 @@ public class CsvParserOperator extends BaseOperator
   private CSVHeaderMapping headerMapping = null;
 
   @NotNull
-  private transient ResuableStringReader csvStringReader = new ResuableStringReader();
+  private transient ReusableStringReader csvStringReader = new ReusableStringReader();
 
   private transient ICsvMapReader mapReader;
 
@@ -183,7 +183,7 @@ public class CsvParserOperator extends BaseOperator
     this.headerMapping = headerMapping;
   }
 
-  public static class ResuableStringReader extends Reader
+  public static class ReusableStringReader extends Reader
   {
     private String str;
     private int length;

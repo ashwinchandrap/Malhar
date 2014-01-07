@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 
-import com.datatorrent.lib.parser.CsvParserOperator.ResuableStringReader;
+import com.datatorrent.lib.parser.CsvParserOperator.ReusableStringReader;
 
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.Context.OperatorContext;
@@ -69,7 +69,7 @@ public class XMLParseOperator extends BaseOperator
   private HashMap<String, String> keyMap;
   private static final Logger logger = LoggerFactory.getLogger(XMLParseOperator.class);
   private InputSource inputSource;
-  private ResuableStringReader reader;
+  private ReusableStringReader reader;
 
   @Override
   public void setup(OperatorContext context)
@@ -82,7 +82,7 @@ public class XMLParseOperator extends BaseOperator
       attributeKeys = new HashMap<String, XPathExpression>();
       keyMap = new HashMap<String, String>();
       inputSource = new InputSource();
-      reader = new ResuableStringReader();
+      reader = new ReusableStringReader();
       inputSource.setCharacterStream(reader);
     }
     catch (ParserConfigurationException ex) {
