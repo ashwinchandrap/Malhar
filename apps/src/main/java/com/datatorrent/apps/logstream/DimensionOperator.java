@@ -56,7 +56,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   /**
    * key: timebucket|timestamp|recordtype|dimensionId|value.operationType
    * value: DimensionObject
-
+   */
   @OutputPortFieldAnnotation(name = "aggregationsOutput")
   public final transient DefaultOutputPort<Map<String, DimensionObject<String>>> aggregationsOutput = new DefaultOutputPort<Map<String, DimensionObject<String>>>()
   {
@@ -68,17 +68,17 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     }
 
   };
-  */
+  /*
+   public final transient DefaultOutputPort<Map<String, Map<String, Map<AggregateOperation, Number>>>> cacheObjOutput = new DefaultOutputPort<Map<String, Map<String, Map<AggregateOperation, Number>>>>(){
 
-  public final transient DefaultOutputPort<Map<String, Map<String, Map<AggregateOperation, Number>>>> cacheObjOutput = new DefaultOutputPort<Map<String, Map<String, Map<AggregateOperation, Number>>>>(){
-
-    @Override
-    public Unifier<Map<String, Map<String, Map<AggregateOperation, Number>>>> getUnifier()
-    {
-      DimensionOperatorUnifier unifier = new DimensionOperatorUnifier();
-      return unifier;
-    }
-  };
+   @Override
+   public Unifier<Map<String, Map<String, Map<AggregateOperation, Number>>>> getUnifier()
+   {
+   DimensionOperatorUnifier unifier = new DimensionOperatorUnifier();
+   return unifier;
+   }
+   };
+   */
   @InputPortFieldAnnotation(name = "in")
   public final transient DefaultInputPort<Map<String, Object>> in = new DefaultInputPort<Map<String, Object>>()
   {
@@ -195,7 +195,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
      outputAggregationsObject.put(finalKey, dimObj);
      }
      }
-     * */
+
+     */
 
     /*
      * calculate count of field for the dimension key combination
@@ -211,7 +212,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
      outputAggregationsObject.put(finalKey, dimObj);
      }
      }
-     * */
+
+     */
 
     /*
      * calculate agerage of field for the dimension key combination
@@ -232,7 +234,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
      outputAggregationsObject.put(finalAvgKey, dimObj);
      }
      }
-     * */
+     */
+
 
 
     Map<AggregateOperation, Number> aggregations;
@@ -279,7 +282,6 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       aggregations.put(AggregateOperation.AVERAGE, new MutableDouble(newAvg));
     }
 
-
   }
 
   @Override
@@ -293,6 +295,44 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   @Override
   public void endWindow()
   {
+    for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
+      String key = keys.getKey();
+      Map<String, Map<AggregateOperation, Number>> dimValues = keys.getValue();
+
+      for (Entry<String, Map<AggregateOperation, Number>> dimValue : dimValues.entrySet()) {
+        String dimValueName = dimValue.getKey();
+        Map<AggregateOperation, Number> operations = dimValue.getValue();
+
+        outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
+
+        for (Entry<AggregateOperation, Number> operation : operations.entrySet()) {
+          AggregateOperation aggrOperationType = operation.getKey();
+          Number aggr = operation.getValue();
+
+          String outKey = key + aggrOperationType.name();
+          DimensionObject<String> outDimObj = new DimensionObject<String>((MutableDouble)aggr, dimValueName);
+
+          outputAggregationsObject.put(outKey, outDimObj);
+
+        }
+        aggregationsOutput.emit(outputAggregationsObject);
+      }
+
+    }
+    /*
+     if (outputAggregationsObject != null) {
+     for (Entry<String, ArrayList<DimensionObject<String>>> aggregations : outputAggregationsObject.entrySet()) {
+     String key = aggregations.getKey();
+     ArrayList<DimensionObject<String>> dimObjList = aggregations.getValue();
+
+     for (DimensionObject<String> dimObj : dimObjList) {
+     HashMap<String, DimensionObject<String>> outObj = new HashMap<String, DimensionObject<String>>();
+     outObj.put(key, dimObj);
+     aggregationsOutput.emit(outObj);
+     }
+     }
+     }
+     */
 
     /*
     outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
@@ -323,9 +363,11 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     }
     */
 
-    if (!cacheObject.isEmpty()) {
-      cacheObjOutput.emit(cacheObject);
-    }
+    /*
+     if (!cacheObject.isEmpty()) {
+     cacheObjOutput.emit(cacheObject);
+     }
+     */
 
 
     /*
@@ -422,12 +464,17 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   {
     ArrayList<Partition<DimensionOperator>> newPartitions = new ArrayList<Partition<DimensionOperator>>();
     String[] filters = registry.list("FILTER");
-    int partitionSize = filters.length;
-    int expectedPartitionSize = partitions.size() + incrementalCapacity;
-    if (expectedPartitionSize > partitionSize) {
-      partitionSize = expectedPartitionSize;
-    }
+    int partitionSize;
 
+    if (partitions.size() == 1) {
+      // initial partitions; functional partitioning
+      partitionSize = filters.length;
+    }
+    else {
+      // redo partitions; double the partitions
+      partitionSize = partitions.size() * 2;
+
+    }
     for (int i = 0; i < partitionSize; i++) {
       DimensionOperator dimensionOperator = new DimensionOperator();
 
@@ -435,21 +482,25 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       newPartitions.add(partition);
     }
 
-    int partitionMask = -1; // all bits
+    int partitionBits = (Integer.numberOfLeadingZeros(0) - Integer.numberOfLeadingZeros(partitionSize / filters.length - 1));
+    int partitionMask = 0;
+    if (partitionBits > 0) {
+      partitionMask = -1 >>> (Integer.numberOfLeadingZeros(-1)) - partitionBits;
+    }
+
+    partitionMask = (partitionMask << 16) | 0xffff; // right most 16 bits used for functional partitioning
 
     for (int i = 0; i <= newPartitions.size(); i++) {
       Partition<DimensionOperator> partition = newPartitions.get(i);
       String partitionVal = filters[i % filters.length];
-      int key = registry.getIndex("FILTER", partitionVal);
-      partition.getPartitionKeys().put(in, new PartitionKeys(partitionMask, Sets.newHashSet(key)));
-
-      partition.getPartitionedInstance();
-
+      int bits = i / filters.length;
+      int filterId = registry.getIndex("FILTER", partitionVal);
+      filterId = 0xffff & filterId; // clear out first 16 bits
+      int partitionKey = (bits << 16) | filterId; // first 16 bits for dynamic partitioning, last 16 bits for functional partitioning
+      partition.getPartitionKeys().put(in, new PartitionKeys(partitionMask, Sets.newHashSet(partitionKey)));
     }
 
     return newPartitions;
-
-
   }
 
   public void setTimeKeyName(String timeKeyName)
@@ -485,7 +536,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     @Override
     public int getPartition(Map<String, Object> o)
     {
-      int ret;
+      int ret = 0;
       String[] list = registry.list("FILTER");
       if (list == null) {
         return 0;
@@ -495,7 +546,13 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       }
 
       //ret = registry.getIndex("FILTER", (String)o.get("FILTER"));
-      ret = (Integer)o.get("FILTER");
+      int filterId = (Integer)o.get("FILTER");
+      int hashCode = o.hashCode();
+
+      filterId = 0xffff & filterId; // clear out first 16 bits
+
+      ret = (hashCode << 16) | filterId; // first 16 bits represent hashcode, last 16 bits represent filter type
+
       return ret;
 
     }
