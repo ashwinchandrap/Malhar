@@ -48,6 +48,7 @@ import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
  */
 public class JsonByteArrayOperator extends BaseOperator
 {
+  private Character CONCAT_CHAR = '_';
   private static final Logger logger = LoggerFactory.getLogger(JsonByteArrayOperator.class);
   /**
    * Input byte array port.
@@ -60,11 +61,11 @@ public class JsonByteArrayOperator extends BaseOperator
       Iterator<String> iterator = jSONObject.keys();
       while (iterator.hasNext()) {
         String key = iterator.next();
-        String insertKey = (keyPrefix == null) ? key : keyPrefix + "." + key;
+        String insertKey = (keyPrefix == null) ? key : keyPrefix + CONCAT_CHAR + key;
 
         JSONObject value = jSONObject.optJSONObject(key);
         if (value == null) {
-          map.put(insertKey, jSONObject.getString(key));
+          map.put(insertKey, jSONObject.get(key));
         }
         else {
           getFlatMap(value, map, insertKey);
@@ -110,6 +111,9 @@ public class JsonByteArrayOperator extends BaseOperator
     }
   };
 
+  public void setConcatenationCharacter(char c) {
+    JsonByteArrayOperator.this.CONCAT_CHAR = c;
+  }
   /**
    * Output hash map port.
    */
