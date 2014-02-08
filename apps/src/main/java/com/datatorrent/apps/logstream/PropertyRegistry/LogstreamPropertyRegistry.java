@@ -21,7 +21,7 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   private HashMap<String, Integer> indexMap = new HashMap<String, Integer>();
 
   @Override
-  public int bind(String name, String value)
+  public synchronized int bind(String name, String value)
   {
     ArrayList<String> values = null;
     int nameIndex = nameList.indexOf(name);
@@ -36,21 +36,27 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
       valueList.put(nameIndex, values);
 
       valueIndex = values.indexOf(value);
-    } else {
+    }
+    else {
       values = valueList.get(nameIndex);
       valueIndex = values.indexOf(value);
       if (valueIndex < 0) {
         values.add(value);
+        valueIndex = values.indexOf(value);
       }
     }
 
     // first 16 characters represent the name, last 16 characters represent the value
     // there can be total of 2 ^ 16 names and 2 ^ 16 values for each name
     int index = nameIndex << 16 | valueIndex;
+
     indexMap.put(name + "_" + value, index);
+    System.out.println("name value = " + name + "_" + value);
+    System.out.println("name index = " + nameIndex);
+    System.out.println("value index = " + valueIndex);
+    System.out.println("index = " + index);
 
     return index;
-
   }
 
   @Override
@@ -91,7 +97,18 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public int getIndex(String name, String value)
   {
-    return indexMap.get(name + "_" + value);
+    Integer index = indexMap.get(name + "_" + value);
+    if (index == null) {
+      return -1;
+    } else {
+      return index;
+    }
+  }
+
+  @Override
+  public String toString()
+  {
+    return indexMap.toString();
   }
 
 }
