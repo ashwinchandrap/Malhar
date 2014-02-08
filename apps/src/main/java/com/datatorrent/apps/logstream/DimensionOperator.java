@@ -35,12 +35,12 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   private long currentWindowId;
   private transient TimeZone timeZone = TimeZone.getTimeZone("GMT");
   private transient Calendar calendar = new GregorianCalendar(timeZone);
-  protected List<String> valueKeyNames = new ArrayList<String>();
+  //protected List<String> valueKeyNames = new ArrayList<String>();
   private int timeBucketFlags;
-  private Map<String, Map<String, Map<AggregateOperation, Number>>> cacheObject;
+  private Map<String, Map<String, Map<AggregateOperation, Number>>> cacheObject = new HashMap<String, Map<String, Map<AggregateOperation, Number>>>();
   private HashMap<String, Number> recordType = new HashMap<String, Number>();
   private Map<String, HashSet<AggregateOperation>> valueOperationTypes = new HashMap<String, HashSet<AggregateOperation>>();
-  private ArrayList<Integer> dimensionCombinationList = new ArrayList<Integer>();
+  private HashMap<Integer, ArrayList<Integer>> dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>();
   private HashMap<String, DimensionObject<String>> outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
   private boolean firstTuple = true;
 
@@ -103,33 +103,43 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
       firstTuple = false;
     }
+    Number receivedLogType = (Number)tuple.get("LOG_TYPE");
+    Number receivedFilter = (Number)tuple.get("FILTER");
 
-    List<String> timeBucketList = DimensionOperator.this.getTimeBucketList(tuple);
+    Number expectedLogType = recordType.get("LOG_TYPE");
+    Number expectedFilter = recordType.get("FILTER");
 
-    // System.out.println(dimensionCombinations.size()+ " testing");
-    for (String timeBucket : timeBucketList) {
+    if (!receivedLogType.equals(expectedLogType) || !receivedFilter.equals(expectedFilter)) {
+      logger.error("Unexpected tuple");
+      logger.error("expected log type = {} received = {}", expectedLogType, receivedLogType);
+      logger.error("expected filter = {} received = {}", expectedFilter, receivedFilter);
+    }
+    else {
+      List<String> timeBucketList = DimensionOperator.this.getTimeBucketList(tuple);
+      ArrayList<Integer> dimensionCombinations = dimensionCombinationList.get((Integer)recordType.get("LOG_TYPE"));
+      logger.info("dimension combinations = {}, timbucket flags = {}, time buckets = {}", dimensionCombinations, Integer.toBinaryString(timeBucketFlags), timeBucketList);
+      for (String timeBucket : timeBucketList) {
 
-      for (Integer dimensionCombinationId : dimensionCombinationList) {
-        String dimensionCombination = registry.lookupValue(dimensionCombinationId);
-        String[] dimensions = dimensionCombination.split(":");
-        int field = 0;
+        for (Integer dimensionCombinationId : dimensionCombinations) {
+          String dimensionCombination = registry.lookupValue(dimensionCombinationId);
+          String[] dimensions = dimensionCombination.split(":");
 
-        String dimValueName = new String();
-        if (dimensions != null) {
-          for (String dimension : dimensions) {
-            if (!dimValueName.isEmpty()) {
-              dimValueName += ",";
+          String dimValueName = new String();
+          if (dimensions != null) {
+            for (String dimension : dimensions) {
+              if (!dimValueName.isEmpty()) {
+                dimValueName += ",";
+              }
+              dimValueName += tuple.get(dimension).toString();
             }
-            dimValueName += tuple.get(dimension).toString();
           }
-        }
-        DimensionOperator.this.doComputations(timeBucket, dimensionCombinationId, dimValueName, field, 1);
-        for (int i = 0; i < valueKeyNames.size(); i++) {
-          String valueKeyName = valueKeyNames.get(i);
-          field = i + 1;
-          Object value = tuple.get(valueKeyName);
-          Number numberValue = Util.extractNumber(value);
-          DimensionOperator.this.doComputations(timeBucket, dimensionCombinationId, dimValueName, field, numberValue);
+
+          for (Entry<String, HashSet<AggregateOperation>> entry : valueOperationTypes.entrySet()) {
+            String valueKeyName = entry.getKey();
+            Object value = tuple.get(valueKeyName);
+            Number numberValue = Util.extractNumber(value);
+            DimensionOperator.this.doComputations(timeBucket, dimensionCombinationId, dimValueName, valueKeyName, numberValue);
+          }
         }
       }
     }
@@ -138,7 +148,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   protected List<String> getTimeBucketList(Map<String, Object> tuple)
   {
     long time;
-    if (timeKeyName == null) {
+    if (timeKeyName != null) {
       time = (Long)tuple.get(timeKeyName);
     }
     else {
@@ -171,10 +181,10 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     return timeBucketList;
   }
 
-  private void doComputations(String timeBucket, Integer dimensionCombinationId, String dimValueName, int field, Number value)
+  private void doComputations(String timeBucket, Integer dimensionCombinationId, String dimValueName, String valueKeyName, Number value)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append(timeBucket).append("|").append(recordType.get("LOG_TYPE")).append("|").append(recordType.get("FILTER")).append("|").append(dimensionCombinationId).append("|").append(field);
+    sb.append(timeBucket).append("|").append(recordType.get("LOG_TYPE")).append("|").append(recordType.get("FILTER")).append("|").append(dimensionCombinationId).append("|").append(valueKeyName);
 
     //final key format --> timebucket|type|filter|dimId|val
     //eg: m|201311230108|1|4|10|bytes
@@ -239,7 +249,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
 
     Map<AggregateOperation, Number> aggregations;
-    String fieldName = valueKeyNames.get(field);
+
 
     if (cacheObject.containsKey(key)) {
       Map<String, Map<AggregateOperation, Number>> dimValueNames = cacheObject.get(key);
@@ -248,8 +258,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       }
       else {
         aggregations = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
-        for (AggregateOperation aggregationType : valueOperationTypes.get(fieldName)) {
-          aggregations.put(aggregationType, 0);
+        for (AggregateOperation aggregationType : valueOperationTypes.get(valueKeyName)) {
+          aggregations.put(aggregationType, new MutableDouble(0));
         }
 
         dimValueNames.put(dimValueName, aggregations);
@@ -258,8 +268,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     else {
       Map<String, Map<AggregateOperation, Number>> newDimValueNames = new HashMap<String, Map<AggregateOperation, Number>>();
       aggregations = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
-      for (AggregateOperation aggregationType : valueOperationTypes.get(fieldName)) {
-        aggregations.put(aggregationType, 0);
+      for (AggregateOperation aggregationType : valueOperationTypes.get(valueKeyName)) {
+        aggregations.put(aggregationType, new MutableDouble(0));
       }
       newDimValueNames.put(dimValueName, aggregations);
       cacheObject.put(key, newDimValueNames);
@@ -309,7 +319,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
           AggregateOperation aggrOperationType = operation.getKey();
           Number aggr = operation.getValue();
 
-          String outKey = key + aggrOperationType.name();
+          String outKey = key + "." + aggrOperationType.name();
           DimensionObject<String> outDimObj = new DimensionObject<String>((MutableDouble)aggr, dimValueName);
 
           outputAggregationsObject.put(outKey, outDimObj);
@@ -335,33 +345,33 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
      */
 
     /*
-    outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
+     outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
 
-    for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
-      String key = keys.getKey();
-      Map<String, Map<AggregateOperation, Number>> dimValues = keys.getValue();
+     for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
+     String key = keys.getKey();
+     Map<String, Map<AggregateOperation, Number>> dimValues = keys.getValue();
 
-      for (Entry<String, Map<AggregateOperation, Number>> dimValue : dimValues.entrySet()) {
-        String dimValueName = dimValue.getKey();
-        Map<AggregateOperation, Number> operations = dimValue.getValue();
+     for (Entry<String, Map<AggregateOperation, Number>> dimValue : dimValues.entrySet()) {
+     String dimValueName = dimValue.getKey();
+     Map<AggregateOperation, Number> operations = dimValue.getValue();
 
-        outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
+     outputAggregationsObject = new HashMap<String, DimensionObject<String>>();
 
-        for (Entry<AggregateOperation, Number> operation : operations.entrySet()) {
-          AggregateOperation aggrOperationType = operation.getKey();
-          Number aggr = operation.getValue();
+     for (Entry<AggregateOperation, Number> operation : operations.entrySet()) {
+     AggregateOperation aggrOperationType = operation.getKey();
+     Number aggr = operation.getValue();
 
-          String outKey = key + aggrOperationType.name();
-          DimensionObject<String> outDimObj = new DimensionObject<String>((MutableDouble)aggr, dimValueName);
+     String outKey = key + aggrOperationType.name();
+     DimensionObject<String> outDimObj = new DimensionObject<String>((MutableDouble)aggr, dimValueName);
 
-          outputAggregationsObject.put(outKey, outDimObj);
+     outputAggregationsObject.put(outKey, outDimObj);
 
-        }
-        aggregationsOutput.emit(outputAggregationsObject);
-      }
+     }
+     aggregationsOutput.emit(outputAggregationsObject);
+     }
 
-    }
-    */
+     }
+     */
 
     /*
      if (!cacheObject.isEmpty()) {
@@ -383,12 +393,14 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     this.registry = registry;
   }
 
-  public void addDimensionsFromString(String[] dimensions)
+  public void setDimensionsFromString(String[] dimensionInputString)
   {
+    ArrayList<Integer> dimensionCombinations = new ArrayList<Integer>();
+    String type = null;
     // user input example::
-    // timebucket=m,timebucket=h,a:b:c,b:c,b,d,values=x.sum:y.sum:y.avg
-    for (String dimension : dimensions) {
-      String[] split = dimension.split("=", 2);
+    // type=apache,timebucket=m,timebucket=h,a:b:c,b:c,b,d,values=x.sum:y.sum:y.avg
+    for (String inputs : dimensionInputString) {
+      String[] split = inputs.split("=", 2);
       if (split[0].toLowerCase().equals("timebucket")) {
 
         int timeBucket = Util.extractTimeBucket(split[1]);
@@ -400,10 +412,11 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       else if (split[0].toLowerCase().equals("values")) {
         String[] values = split[1].split(":");
         for (String value : values) {
-          String[] valueNames = value.split(".");
+          String[] valueNames = value.split("\\.");
+          logger.info("value = {}, value after split = {}", value, Arrays.toString(valueNames));
           String valueName = valueNames[0];
           String valueType = valueNames[1];
-          this.addValueKeyName(valueName);
+          //valueKeyNames.add(valueName);
           if (valueType.toLowerCase().equals("sum")) {
             if (this.valueOperationTypes.containsKey(valueName)) {
               this.valueOperationTypes.get(valueName).add(AggregateOperation.SUM);
@@ -436,8 +449,10 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
               this.valueOperationTypes.put(valueName, valueTypeList);
             }
           }
-
         }
+      }
+      else if (split[0].toLowerCase().equals("type")) {
+        type = split[1];
       }
       else {
         // dimensions
@@ -451,12 +466,12 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
          this.addCombination(dimensionKeySet);
          //int dim = registry.bind("DIMENSION", dimensionKeySet.toString());
          */
-        int dim = registry.bind("DIMENSION", dimension);
-
-        dimensionCombinationList.add(dim);
+        int dim = registry.bind("DIMENSION", inputs);
+        dimensionCombinations.add(dim);
       }
-
     }
+
+    dimensionCombinationList.put(registry.getIndex("LOG_TYPE", type), dimensionCombinations);
   }
 
   @Override
@@ -508,7 +523,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     this.timeKeyName = timeKeyName;
   }
 
-  public void extractType(Map<String, Object> tuple)
+  private void extractType(Map<String, Object> tuple)
   {
     recordType.put("LOG_TYPE", (Number)tuple.get("LOG_TYPE"));
     recordType.put("FILTER", (Number)tuple.get("FILTER"));
@@ -516,16 +531,17 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     //dataMap.put("RECORD_TYPE", recordType);
   }
 
-  public void addValueKeyName(String key)
-  {
-    valueKeyNames.add(key);
-  }
+  /*
+   public void addValueKeyName(String key)
+   {
+   valueKeyNames.add(key);
+   }
 
-  public void setTimeBucketFlags(int timeBucketFlags)
-  {
-    this.timeBucketFlags = timeBucketFlags;
-  }
-
+   public void setTimeBucketFlags(int timeBucketFlags)
+   {
+   this.timeBucketFlags = timeBucketFlags;
+   }
+   */
   private void createAllDimensionCombinations()
   {
     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
