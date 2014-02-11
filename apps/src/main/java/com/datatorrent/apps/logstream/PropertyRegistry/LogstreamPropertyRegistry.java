@@ -6,6 +6,7 @@ package com.datatorrent.apps.logstream.PropertyRegistry;
 
 import java.rmi.registry.LocateRegistry;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import org.apache.activemq.util.LRUCache;
@@ -73,15 +74,20 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public String[] list(String name)
   {
+    //System.out.println("## registry list: name = " + name);
     int nameIndex = nameList.indexOf(name);
 
+    //System.out.println("## registry list: nameIndex = " + nameIndex);
+
     if (nameIndex < 0) {
-      return null;
+      return new String[0];
     }
 
     ArrayList<String> values = valueList.get(nameIndex);
 
-    return (String[])values.toArray();
+    //System.out.println("## registry list: list = " + values);
+
+    return values.toArray(new String[values.size()]);
 
   }
 

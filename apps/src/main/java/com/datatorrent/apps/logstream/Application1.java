@@ -37,16 +37,21 @@ public class Application1 implements StreamingApplication
 
     FilterOperator filterOperator = dag.addOperator("FilterOperator", new FilterOperator());
     filterOperator.setRegistry(registry);
-    filterOperator.addFilterCondition(new String[]{"type=apache", "response", "response.equals(\"404\")"});
-    filterOperator.addFilterCondition(new String[]{"type=apache", "agentinfo_name", "agentinfo_name.equals(\"Firefox\")"});
+    filterOperator.addFilterCondition(new String[] {"type=apache", "response", "response.equals(\"404\")"});
+    filterOperator.addFilterCondition(new String[] {"type=apache", "agentinfo_name", "agentinfo_name.equals(\"Firefox\")"});
+    filterOperator.addFilterCondition(new String[] {"type=apache", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=mysql", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=syslog", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=system", "default=true"});
 
-
-    /*
-     DimensionOperator dimensionOperator = dag.addOperator("DimensionOperator", new DimensionOperator());
-     dimensionOperator.setRegistry(registry);
-     String[] dimensionInputString = new String[]{"type=apache","timebucket=s","timebucket=h","request,clientip,clientip:request","values=bytes.sum:bytes.avg"};
-     dimensionOperator.setDimensionsFromString(dimensionInputString);
-     */
+    DimensionOperator dimensionOperator = dag.addOperator("DimensionOperator", new DimensionOperator());
+    dimensionOperator.setRegistry(registry);
+    String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=m", "request", "clientip", "clientip:request", "values=bytes.sum:bytes.avg"};
+    String[] dimensionInputString2 = new String[] {"type=system", "timebucket=m", "disk", "values=writes.avg"};
+    String[] dimensionInputString3 = new String[] {"type=syslog", "timebucket=m", "program", "values=pid.count"};
+    dimensionOperator.setDimensionsFromString(dimensionInputString1);
+    dimensionOperator.setDimensionsFromString(dimensionInputString2);
+    dimensionOperator.setDimensionsFromString(dimensionInputString3);
 
     /*
      TopN<String, DimensionObject<String>> topN = dag.addOperator("TopN", new TopN<String, DimensionObject<String>>());
@@ -58,8 +63,9 @@ public class Application1 implements StreamingApplication
     //dag.addStream("inputJSonToMap", logInput.outputPort, consoleOut.input);
     //dag.addStream("consoleout", jsonToMap.outputFlatMap, consoleOut.input);
     dag.addStream("toFilterOper", jsonToMap.outputFlatMap, filterOperator.input);
-    dag.addStream("consoleout", filterOperator.outputMap, consoleOut.input);
-    //dag.addStream("toDimensionOper", filterOperator.outputMap, dimensionOperator.in);
+    //dag.addStream("consoleout", filterOperator.outputMap, consoleOut.input);
+    dag.addStream("toDimensionOper", filterOperator.outputMap, dimensionOperator.in);
+    dag.addStream("consoleout", dimensionOperator.aggregationsOutput, consoleOut.input);
     //dag.addStream("toTopN", dimensionOperator.aggregationsOutput, topN.data);
 
     dag.setInputPortAttribute(jsonToMap.input, PortContext.PARTITION_PARALLEL, true);

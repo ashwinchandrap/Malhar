@@ -37,6 +37,7 @@ public class FilterOperatorTest
       filterOperator.setRegistry(registry);
       String val = "404";
       filterOperator.addFilterCondition(new String[] {"type=apache", "response", "response.equals(\"404\")"});
+      filterOperator.addFilterCondition(new String[] {"type=apache", "default=true"});
 
       TestOutputOperator outputOperator = dag.addOperator("OutputOperator", new TestOutputOperator());
 

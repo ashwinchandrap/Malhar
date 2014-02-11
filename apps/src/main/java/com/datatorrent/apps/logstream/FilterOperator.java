@@ -59,7 +59,7 @@ public class FilterOperator extends BaseOperator
   public void setup(OperatorContext context)
   {
     super.setup(context);
-    registry.bind("FILTER", "NO_CONDITION"); // used to represent the output tuple on which no condition is applied
+    //registry.bind("FILTER", "NO_CONDITION"); // used to represent the output tuple on which no condition is applied
   }
 
   @InputPortFieldAnnotation(name = "input")
@@ -70,7 +70,7 @@ public class FilterOperator extends BaseOperator
     {
       HashMap<String, Object> filterTuple;
       int typeId = (Integer)map.get("LOG_TYPE");
-      Object resp = map.get("response");
+      //Object resp = map.get("response");
       Map<String, String[]> conditions = conditionList.get(typeId);
       if (conditions != null) {
         for (String condition : conditions.keySet()) {
@@ -83,10 +83,15 @@ public class FilterOperator extends BaseOperator
         }
       }
 
-      // emit the same tuple once without any condition
-      int index = registry.getIndex("FILTER", "NO_CONDITION");
-      map.put("FILTER", index);
-      outputMap.emit((HashMap<String, Object>)map);
+      // emit the same tuple for default condition
+      int defaultFilterIndex = registry.getIndex("FILTER", registry.lookupValue(typeId) + "_" + "DEFAULT");
+
+      //logger.info("default filter index = {} lookupName for typeid {} is {}", defaultFilterIndex, typeId, registry.lookupValue(typeId));
+
+      if (defaultFilterIndex >=0) {
+        map.put("FILTER", defaultFilterIndex);
+        outputMap.emit((HashMap<String, Object>)map);
+      }
     }
 
     private boolean evaluate(String condition, Map<String, Object> map, String[] keys)
@@ -171,27 +176,40 @@ public class FilterOperator extends BaseOperator
     //type=apache,a,b,c,a==1&&b==2&&c=="abc"
     //String[] split = condition.split(";");
 
-    String[] split = condition[0].split("=");
-    String type = split[1];
-    int typeId = registry.getIndex("LOG_TYPE", type);
-    String[] keys = new String[condition.length - 2];
+    if (condition.length == 2) {
+      logger.info(Arrays.toString(condition));
+      String[] split = condition[0].split("=");
+      String type = split[1];
+      String[] split1 = condition[1].split("=");
+      if (split1[1].toLowerCase().equals("true")) {
+        registry.bind("FILTER", type + "_" + "DEFAULT");
+      }
 
-    System.arraycopy(condition, 1, keys, 0, keys.length);
+    } else if (condition.length == 3) {
+      String[] split = condition[0].split("=");
+      String type = split[1];
+      int typeId = registry.getIndex("LOG_TYPE", type);
+      String[] keys = new String[condition.length - 2];
 
-    for (String string : keys) {
-      System.out.println("condition keys = " + string);
-    }
-    String expression = condition[condition.length - 1];
+      System.arraycopy(condition, 1, keys, 0, keys.length);
 
-    Map<String, String[]> conditions = conditionList.get(typeId);
-    if (conditions == null) {
-      conditions = new HashMap<String, String[]>();
-      conditionList.put(typeId, conditions);
-    }
+      for (String string : keys) {
+        System.out.println("condition keys = " + string);
+      }
+      String expression = condition[condition.length - 1];
 
-    conditions.put(expression, keys);
-    if (registry != null) {
-      registry.bind("FILTER", expression);
+      Map<String, String[]> conditions = conditionList.get(typeId);
+      if (conditions == null) {
+        conditions = new HashMap<String, String[]>();
+        conditionList.put(typeId, conditions);
+      }
+
+      conditions.put(expression, keys);
+      if (registry != null) {
+        registry.bind("FILTER", expression);
+      }
+    } else {
+      //THROW ERROR
     }
   }
 
