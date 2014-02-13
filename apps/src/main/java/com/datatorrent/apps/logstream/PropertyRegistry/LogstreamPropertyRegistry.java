@@ -4,12 +4,11 @@
  */
 package com.datatorrent.apps.logstream.PropertyRegistry;
 
-import java.rmi.registry.LocateRegistry;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import org.apache.activemq.util.LRUCache;
+
+import org.slf4j.LoggerFactory;
+
 
 /**
  *
@@ -17,6 +16,8 @@ import org.apache.activemq.util.LRUCache;
  */
 public class LogstreamPropertyRegistry implements PropertyRegistry<String>
 {
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(LogstreamPropertyRegistry.class);
+  private static PropertyRegistry<String> instance;
   private HashMap<Integer, ArrayList<String>> valueList = new HashMap<Integer, ArrayList<String>>();
   private ArrayList<String> nameList = new ArrayList<String>();
   private HashMap<String, Integer> indexMap = new HashMap<String, Integer>();
@@ -24,6 +25,7 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public synchronized int bind(String name, String value)
   {
+    System.out.println("binding.. name = " + name + " value = " + value);
     ArrayList<String> values = null;
     int nameIndex = nameList.indexOf(name);
     int valueIndex;
@@ -106,7 +108,8 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
     Integer index = indexMap.get(name + "_" + value);
     if (index == null) {
       return -1;
-    } else {
+    }
+    else {
       return index;
     }
   }
@@ -115,6 +118,19 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   public String toString()
   {
     return indexMap.toString();
+  }
+
+  public static PropertyRegistry<String> getInstance()
+  {
+    if (instance == null) {
+      logger.error("registry instance is null");
+    }
+    return instance;
+  }
+
+  public static void setInstance(PropertyRegistry<String> registry)
+  {
+    instance = registry;
   }
 
 }

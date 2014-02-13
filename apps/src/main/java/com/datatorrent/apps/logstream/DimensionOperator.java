@@ -8,6 +8,8 @@ import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
+import com.datatorrent.api.annotation.ShipContainingJars;
+import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 import com.datatorrent.apps.logstream.Util.AggregateOperation;
 import com.datatorrent.lib.logs.DimensionObject;
@@ -28,7 +30,7 @@ import org.slf4j.LoggerFactory;
 public class DimensionOperator extends BaseOperator implements Partitionable<DimensionOperator>
 {
   @NotNull
-  private static PropertyRegistry<String> registry;
+  private PropertyRegistry<String> registry;
   private static final Logger logger = LoggerFactory.getLogger(DimensionOperator.class);
   //private Map<String, Map<String, Number>> dataMap;
   private String timeKeyName;
@@ -43,8 +45,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   private HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>> valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>();
   private HashMap<Integer, ArrayList<Integer>> dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>();
   private transient boolean firstTuple = true;
-  ArrayList<Integer> dimensionCombinations;
-  HashMap<String, HashSet<AggregateOperation>> valueOperationTypes;
+  private ArrayList<Integer> dimensionCombinations;
+  private HashMap<String, HashSet<AggregateOperation>> valueOperationTypes;
 
   @Override
   public void setup(OperatorContext context)
@@ -53,6 +55,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     if (context != null) {
       windowWidth = context.getValue(DAGContext.STREAMING_WINDOW_SIZE_MILLIS);
     }
+    LogstreamPropertyRegistry.setInstance(registry);
   }
 
   /**
@@ -145,7 +148,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
             for (String dimension : dimensions) {
               Object dimVal = tuple.get(dimension);
               if (dimVal == null) {
-                logger.error("dimension \"{}\" not found in tuple {}", dimension, tuple);
+                logger.error("dimension \"{}\" not found in tuple", dimension);
+                //logger.error("dimension \"{}\" not found in tuple {}", dimension, tuple);
                 isBadTuple = true;
                 continue;
               }
@@ -415,7 +419,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   public void setRegistry(PropertyRegistry<String> registry)
   {
-    DimensionOperator.registry = registry;
+    DimensionOperator.this.registry = registry;
   }
 
   public void setDimensionsFromString(String[] dimensionInputString)
@@ -505,6 +509,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   protected Object clone() throws CloneNotSupportedException
   {
     DimensionOperator dimOper = new DimensionOperator();
+    dimOper.registry = DimensionOperator.this.registry;
     dimOper.timeBucketFlags = DimensionOperator.this.timeBucketFlags;
     dimOper.valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>(DimensionOperator.this.valueOperations);
     dimOper.dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>(DimensionOperator.this.dimensionCombinationList);
@@ -599,15 +604,20 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   public static class DimensionOperatorStreamCodec extends KryoSerializableStreamCodec<Map<String, Object>>
   {
-    public DimensionOperatorStreamCodec()
+    /*
+    private LogstreamPropertyRegistry registry;
+
+    public void setRegistry(LogstreamPropertyRegistry registry)
     {
-      super();
+      this.registry = registry;
     }
+    */
 
     @Override
     public int getPartition(Map<String, Object> o)
     {
       int ret = 0;
+      PropertyRegistry<String> registry = LogstreamPropertyRegistry.getInstance();
       String[] list = registry.list("FILTER");
       if (list == null) {
         return 0;

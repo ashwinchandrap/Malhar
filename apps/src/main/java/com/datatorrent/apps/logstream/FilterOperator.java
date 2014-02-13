@@ -27,9 +27,9 @@ import org.codehaus.janino.Scanner.ScanException;
 
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
+import com.datatorrent.api.annotation.ShipContainingJars;
+import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
-import com.datatorrent.lib.util.KryoSerializableStreamCodec;
-import com.google.common.collect.Sets;
 import java.util.*;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
+@ShipContainingJars(classes = {org.codehaus.janino.ExpressionEvaluator.class})
 public class FilterOperator extends BaseOperator
 {
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(FilterOperator.class);
@@ -48,7 +49,7 @@ public class FilterOperator extends BaseOperator
    */
   private HashMap<Integer, Map<String, String[]>> conditionList = new HashMap<Integer, Map<String, String[]>>();
   private transient HashMap<String, ExpressionEvaluator> evaluators = new HashMap<String, ExpressionEvaluator>();
-  private static PropertyRegistry<String> registry;
+  private PropertyRegistry<String> registry;
 
   public void setRegistry(PropertyRegistry<String> registry)
   {
@@ -59,7 +60,7 @@ public class FilterOperator extends BaseOperator
   public void setup(OperatorContext context)
   {
     super.setup(context);
-    //registry.bind("FILTER", "NO_CONDITION"); // used to represent the output tuple on which no condition is applied
+    LogstreamPropertyRegistry.setInstance(registry);
   }
 
   @InputPortFieldAnnotation(name = "input")

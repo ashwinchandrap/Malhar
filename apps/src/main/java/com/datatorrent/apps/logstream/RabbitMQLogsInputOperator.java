@@ -18,6 +18,7 @@ package com.datatorrent.apps.logstream;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultPartition;
 import com.datatorrent.api.Partitionable;
+import com.datatorrent.api.annotation.ShipContainingJars;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.contrib.rabbitmq.AbstractSinglePortRabbitMQInputOperator;
 import com.datatorrent.lib.util.KeyValPair;
@@ -43,6 +44,14 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   private static final Logger logger = LoggerFactory.getLogger(RabbitMQLogsInputOperator.class);
   private String[] routingKeys;
   private LogstreamPropertyRegistry registry;
+
+  @Override
+  public void setup(OperatorContext context)
+  {
+    super.setup(context);
+    LogstreamPropertyRegistry.setInstance(registry);
+  }
+
 
   @Override
   public byte[] getTuple(byte[] message)
@@ -167,7 +176,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
       Partition<RabbitMQLogsInputOperator> partition = new DefaultPartition<RabbitMQLogsInputOperator>(oper);
 
       newPartitions.add(partition);
-      System.out.println("added new partition for logs input");
+      System.out.println("added new partition for logs input for routingkey " + rKey);
     }
     return newPartitions;
   }
