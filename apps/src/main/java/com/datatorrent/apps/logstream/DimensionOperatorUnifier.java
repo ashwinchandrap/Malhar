@@ -16,6 +16,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import org.apache.commons.lang.mutable.MutableDouble;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -23,23 +25,40 @@ import org.apache.commons.lang.mutable.MutableDouble;
  */
 public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionObject<String>>>
 {
+  private static final Logger logger = LoggerFactory.getLogger(DimensionOperatorUnifier.class);
   @OutputPortFieldAnnotation(name = "aggregationsOutput")
   public final transient DefaultOutputPort<Map<String, DimensionObject<String>>> aggregationsOutput = new DefaultOutputPort<Map<String, DimensionObject<String>>>();
   Map<String, DimensionObject<String>> unifiedOutput;
   private Map<String, Map<String, Map<AggregateOperation, Number>>> cacheObject = new HashMap<String, Map<String, Map<AggregateOperation, Number>>>();
+  private transient boolean firstTuple = true;
+  private HashMap<String, Number> recordType = new HashMap<String, Number>();
 
   @Override
   public void process(Map<String, DimensionObject<String>> tuple)
   {
+    if (firstTuple) {
+      DimensionOperatorUnifier.this.extractType(tuple);
+      firstTuple = false;
+    }
+
     // tuple will have one record each per operation type. currently 3 record one for each of SUM, COUNT, AVERAGE
     Iterator<Entry<String, DimensionObject<String>>> iterator = tuple.entrySet().iterator();
-    String randomKey;
+    String randomKey = null;
     String key = null;
 
     if (iterator.hasNext()) {
       randomKey = iterator.next().getKey();
-      String[] split = randomKey.split(".");
+      String[] split = randomKey.split("\\.");
       key = split[0];
+    }
+
+    String[] split = randomKey.split("|");
+    Number receivedFilter = new Integer(split[3]);
+    Number expectedFilter = recordType.get("FILTER");
+
+    if (!receivedFilter.equals(expectedFilter)) {
+      logger.error("Unexpected tuple");
+      logger.error("expected filter = {} received = {}", expectedFilter, receivedFilter);
     }
 
     DimensionOperatorUnifier.this.computeAddition(tuple, AggregateOperation.SUM, key);
@@ -96,7 +115,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
 
   private void computeAddition(Map<String, DimensionObject<String>> tuple, AggregateOperation opType, String key)
   {
-    String finalKey = key + opType.name();
+    String finalKey = key + "." + opType.name();
     if (tuple.containsKey(finalKey)) {
 
       DimensionObject<String> dimObj = tuple.get(finalKey);
@@ -118,7 +137,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
         else {
           Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
           newAggrs.put(opType, dimObj.getCount().doubleValue());
-          cacheAggrs.put(key, newAggrs);
+          cacheAggrs.put(dimObj.getVal(), newAggrs);
         }
       }
       else {
@@ -126,7 +145,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
         Map<String, Map<AggregateOperation, Number>> cacheAggrs = new HashMap<String, Map<AggregateOperation, Number>>();
 
         newAggrs.put(opType, dimObj.getCount().doubleValue());
-        cacheAggrs.put(key, newAggrs);
+        cacheAggrs.put(dimObj.getVal(), newAggrs);
         cacheObject.put(key, cacheAggrs);
       }
     }
@@ -135,7 +154,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
 
   private void computeAverage(Map<String, DimensionObject<String>> tuple, AggregateOperation opType, String key)
   {
-    String finalKey = key + opType.name();
+    String finalKey = key + "." + opType.name();
     if (tuple.containsKey(finalKey)) {
 
       DimensionObject<String> dimObj = tuple.get(finalKey);
@@ -145,13 +164,14 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
           Map<AggregateOperation, Number> cacheAggr = cacheAggrs.get(dimObj.getVal());
           if (cacheAggr.containsKey(opType)) {
             double cacheAvg = cacheAggr.get(opType).doubleValue();
-            double cacheCount = cacheAggr.get(AggregateOperation.COUNT).doubleValue();
+            double cacheCount = cacheAggr.get(AggregateOperation.COUNT).doubleValue(); // this is total count, should be computed before calling average
 
             double newAvg = dimObj.getCount().doubleValue();
-            double newCount = tuple.get(key + AggregateOperation.COUNT.name()).getCount().doubleValue();
+            double newCount = tuple.get(key + "." + AggregateOperation.COUNT.name()).getCount().doubleValue();
 
-            double finalVal = (cacheAvg * cacheCount + newAvg * newCount) / (cacheCount + newCount);
+            double finalVal = (cacheAvg * (cacheCount - newCount) + newAvg * newCount) / cacheCount;
 
+            //logger.info("AVEREGE.. cacheAvg = {} cacheCount = {} newAvg = {} newCount = {} finalAvg = {}", cacheAvg, cacheCount, newAvg, newCount, finalVal);
             cacheAggr.put(opType, finalVal);
           }
           else {
@@ -161,7 +181,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
         else {
           Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
           newAggrs.put(opType, dimObj.getCount().doubleValue());
-          cacheAggrs.put(key, newAggrs);
+          cacheAggrs.put(dimObj.getVal(), newAggrs);
         }
       }
       else {
@@ -169,7 +189,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
         Map<String, Map<AggregateOperation, Number>> cacheAggrs = new HashMap<String, Map<AggregateOperation, Number>>();
 
         newAggrs.put(opType, dimObj.getCount().doubleValue());
-        cacheAggrs.put(key, newAggrs);
+        cacheAggrs.put(dimObj.getVal(), newAggrs);
         cacheObject.put(key, cacheAggrs);
       }
     }
@@ -186,6 +206,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   @Override
   public void endWindow()
   {
+    //logger.info("in end window, cache object size = {}", cacheObject.size());
     Map<String, DimensionObject<String>> outputAggregationsObject;
 
     for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
@@ -202,12 +223,13 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
           AggregateOperation aggrOperationType = operation.getKey();
           Number aggr = operation.getValue();
 
-          String outKey = key + aggrOperationType.name();
-          DimensionObject<String> outDimObj = new DimensionObject<String>((MutableDouble)aggr, dimValueName);
+          String outKey = key + "." + aggrOperationType.name();
+          DimensionObject<String> outDimObj = new DimensionObject<String>(new MutableDouble(aggr), dimValueName);
 
           outputAggregationsObject.put(outKey, outDimObj);
 
         }
+        //logger.info("emitting tuple {}", outputAggregationsObject);
         aggregationsOutput.emit(outputAggregationsObject);
       }
 
@@ -217,13 +239,25 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   @Override
   public void setup(OperatorContext t1)
   {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
   }
 
   @Override
   public void teardown()
   {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+  }
+
+  private void extractType(Map<String, DimensionObject<String>> tuple)
+  {
+    Iterator<Entry<String, DimensionObject<String>>> iterator = tuple.entrySet().iterator();
+    String randomKey = null;
+
+    if (iterator.hasNext()) {
+      randomKey = iterator.next().getKey();
+    }
+    String[] split = randomKey.split("|");
+    Number filterId = new Integer(split[3]);
+
+    recordType.put("FILTER", filterId);
   }
 
 }
