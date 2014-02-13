@@ -64,7 +64,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
       randomKey = iterator.next().getKey();
     }
 
-    String[] split = randomKey.split("|");
+    String[] split = randomKey.split("\\|");
     Number receivedFilter = new Integer(split[3]);
     Number expectedFilter = recordType.get("FILTER");
 
@@ -157,7 +157,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     if (iterator.hasNext()) {
       randomKey = iterator.next().getKey();
     }
-    String[] split = randomKey.split("|");
+    String[] split = randomKey.split("\\|");
     Number filterId = new Integer(split[3]);
 
     recordType.put("FILTER", filterId);
@@ -171,7 +171,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     {
       Iterator<String> iterator = t.keySet().iterator();
       String key = iterator.next();
-      String[] split = key.split("|");
+      String[] split = key.split("\\|");
       int filterId = new Integer(split[3]); // filter id location in input record key
 
       int ret = 0;

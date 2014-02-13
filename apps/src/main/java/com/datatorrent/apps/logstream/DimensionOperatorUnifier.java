@@ -52,7 +52,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
       key = split[0];
     }
 
-    String[] split = randomKey.split("|");
+    String[] split = randomKey.split("\\|");
     Number receivedFilter = new Integer(split[3]);
     Number expectedFilter = recordType.get("FILTER");
 
@@ -254,7 +254,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
     if (iterator.hasNext()) {
       randomKey = iterator.next().getKey();
     }
-    String[] split = randomKey.split("|");
+    String[] split = randomKey.split("\\|");
     Number filterId = new Integer(split[3]);
 
     recordType.put("FILTER", filterId);
