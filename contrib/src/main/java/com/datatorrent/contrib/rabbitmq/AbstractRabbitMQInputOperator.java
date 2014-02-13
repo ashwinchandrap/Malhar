@@ -67,26 +67,26 @@ ActivationListener<OperatorContext>
 {
   private static final Logger logger = LoggerFactory.getLogger(AbstractRabbitMQInputOperator.class);
   @NotNull
-  private String host;
+  protected String host;
   @NotNull
-  private String exchange;
+  protected String exchange;
   @NotNull
-  private String exchangeType;
-  private String routingKey = "";
-  private String queueName; // Has to be supplied by client when exchangeType is not "fanout"
-  transient ConnectionFactory connFactory;
+  protected String exchangeType;
+  protected String routingKey = "";
+  protected String queueName; // Has to be supplied by client when exchangeType is not "fanout"
+  protected transient ConnectionFactory connFactory;
 //  QueueingConsumer consumer = null;
 
   private static final int DEFAULT_BLAST_SIZE = 1000;
   private static final int DEFAULT_BUFFER_SIZE = 1024*1024;
   private int tuple_blast = DEFAULT_BLAST_SIZE;
-  private int bufferSize = DEFAULT_BUFFER_SIZE;
+  protected int bufferSize = DEFAULT_BUFFER_SIZE;
 
-  transient Connection connection = null;
-  transient Channel channel = null;
-  transient TracingConsumer tracingConsumer = null;
-  transient String cTag;
-  transient ArrayBlockingQueue<byte[]> holdingBuffer;
+  protected transient Connection connection = null;
+  protected transient Channel channel = null;
+  protected transient TracingConsumer tracingConsumer = null;
+  protected transient String cTag;
+  protected transient ArrayBlockingQueue<byte[]> holdingBuffer;
 
 /**
  * define a consumer which can asynchronously receive data,
