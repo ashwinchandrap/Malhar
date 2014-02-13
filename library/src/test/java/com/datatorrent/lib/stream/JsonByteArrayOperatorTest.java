@@ -37,6 +37,7 @@ public class JsonByteArrayOperatorTest
     public void testOperator() throws Exception
     {
       JsonByteArrayOperator oper = new JsonByteArrayOperator();
+      oper.setConcatenationCharacter('.');
 
       CollectorTestSink mapSink = new CollectorTestSink();
       CollectorTestSink jsonObjectSink = new CollectorTestSink();
@@ -53,17 +54,17 @@ public class JsonByteArrayOperatorTest
                         + "      ,\"@version\":\"1\""
                         + "          ,\"type\":\"apache-logs\""
                         + "          ,\"host\":\"node1001\""
-                        + "      ,\"clientip\":\"192.168.150.120\""
+                        + "      ,\"clientip\":192.168.150.120"
                         + "          ,\"verb\":\"GET\""
                         + "       ,\"request\":\"/reset.css\""
                         + "   ,\"httpversion\":\"1.1\""
-                        + "      ,\"response\":\"200\""
-                        + "     ,\"agentinfo\": {\"browser\":\"Firefox\""
+                        + "      ,\"response\":200"
+                        + "     ,\"agentinfo\": {\"browser\":Firefox"
                         + "                          ,\"os\": {    \"name\":\"Ubuntu\""
                         + "                                    ,\"version\":\"10.04\""
                         + "                                   }"
                         + "                     }"
-                        + "         ,\"bytes\":\"909\""
+                        + "         ,\"bytes\":909.1"
                         + " }";
 
       byte[] inputByteArray = inputJson.getBytes();
@@ -86,17 +87,18 @@ public class JsonByteArrayOperatorTest
       String expectedClientip = "192.168.150.120";
       Assert.assertEquals("emitted tuple", expectedClientip, ((Map)map).get("clientip"));
 
+
       // assert that value for one of the keys in any one of the objects from jsonObjectSink is as expected
       Object jsonObject = jsonObjectSink.collectedTuples.get(433);
-      String expectedResponse = "200";
+      Number expectedResponse = 200;
       Assert.assertEquals("emitted tuple", expectedResponse, ((JSONObject)jsonObject).get("response"));
 
       // assert that value for one of the keys in any one of the objects from flatMapSink is as expected
-      Object flatMap = flatMapSink.collectedTuples.get(511);
+      Map flatMap = (Map)flatMapSink.collectedTuples.get(511);
       String expectedBrowser = "Firefox";
       String expectedOsName = "Ubuntu";
-      Assert.assertEquals("emitted tuple", expectedBrowser, ((Map)flatMap).get("agentinfo.browser"));
-      Assert.assertEquals("emitted tuple", expectedOsName, ((Map)flatMap).get("agentinfo.os.name"));
+      Assert.assertEquals("emitted tuple", expectedBrowser, flatMap.get("agentinfo.browser"));
+      Assert.assertEquals("emitted tuple", expectedOsName, flatMap.get("agentinfo.os.name"));
     }
 
 }
