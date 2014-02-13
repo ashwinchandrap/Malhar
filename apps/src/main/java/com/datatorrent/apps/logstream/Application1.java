@@ -6,6 +6,7 @@ package com.datatorrent.apps.logstream;
 
 import com.datatorrent.api.Context.PortContext;
 import com.datatorrent.api.DAG;
+import com.datatorrent.api.DAG.Locality;
 import com.datatorrent.api.StreamingApplication;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.lib.algo.TopN;
@@ -31,6 +32,7 @@ public class Application1 implements StreamingApplication
     RabbitMQLogsInputOperator logInput = dag.addOperator("LogInput", new RabbitMQLogsInputOperator());
     logInput.setRegistry(registry);
     logInput.addPropertiesFromString(new String[] {"localhost", "logsExchange", "direct", "logs", "apache:mysql:syslog:system"});
+    //logInput.addPropertiesFromString(new String[] {"localhost", "logsExchange", "direct", "logs", "apache:system"});
 
     JsonByteArrayOperator jsonToMap = dag.addOperator("JsonToMap", new JsonByteArrayOperator());
     jsonToMap.setConcatenationCharacter('_');
@@ -53,9 +55,10 @@ public class Application1 implements StreamingApplication
     dimensionOperator.setDimensionsFromString(dimensionInputString2);
     dimensionOperator.setDimensionsFromString(dimensionInputString3);
 
-    /*
-     TopN<String, DimensionObject<String>> topN = dag.addOperator("TopN", new TopN<String, DimensionObject<String>>());
-     */
+    LogstreamTopN topN = dag.addOperator("TopN", new LogstreamTopN());
+    topN.setN(10);
+    topN.setRegistry(registry);
+
     ConsoleOutputOperator consoleOut = dag.addOperator("ConsoleOut", new ConsoleOutputOperator());
     //consoleOut.silent = true;
 
@@ -65,8 +68,9 @@ public class Application1 implements StreamingApplication
     dag.addStream("toFilterOper", jsonToMap.outputFlatMap, filterOperator.input);
     //dag.addStream("consoleout", filterOperator.outputMap, consoleOut.input);
     dag.addStream("toDimensionOper", filterOperator.outputMap, dimensionOperator.in);
-    dag.addStream("consoleout", dimensionOperator.aggregationsOutput, consoleOut.input);
-    //dag.addStream("toTopN", dimensionOperator.aggregationsOutput, topN.data);
+    //dag.addStream("consoleout", dimensionOperator.aggregationsOutput, consoleOut.input);
+    dag.addStream("toTopN", dimensionOperator.aggregationsOutput, topN.data);
+    dag.addStream("consoleout", topN.top, consoleOut.input);
 
     dag.setInputPortAttribute(jsonToMap.input, PortContext.PARTITION_PARALLEL, true);
     dag.setInputPortAttribute(filterOperator.input, PortContext.PARTITION_PARALLEL, true);
