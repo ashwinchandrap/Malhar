@@ -36,15 +36,16 @@ import com.datatorrent.lib.stream.JsonByteArrayOperator;
 import com.datatorrent.lib.streamquery.SelectOperator;
 import com.datatorrent.lib.streamquery.condition.EqualValueCondition;
 import com.datatorrent.lib.streamquery.index.ColumnIndex;
-import com.datatorrent.lib.util.DimensionTimeBucketOperator;
+import com.datatorrent.lib.util.AbstractDimensionTimeBucketOperator;
 import com.datatorrent.lib.util.DimensionTimeBucketSumOperator;
 
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.Operator.InputPort;
 import com.datatorrent.api.StreamingApplication;
+import com.datatorrent.contrib.redis.RedisKeyValPairOutputOperator;
+import com.datatorrent.contrib.redis.RedisMapOutputOperator;
+import com.datatorrent.contrib.redis.RedisNumberSummationMapOutputOperator;
 
-import com.datatorrent.contrib.redis.RedisNumberAggregateOutputOperator;
-import com.datatorrent.contrib.redis.RedisOutputOperator;
 
 /**
  * Log stream processing application based on DataTorrent platform.<br>
@@ -104,8 +105,8 @@ public class Application implements StreamingApplication
   public InputPort<Map<String, Map<String, Number>>> getRedisOutput(String name, DAG dag, int dbIndex)
   {
     @SuppressWarnings("unchecked")
-    RedisNumberAggregateOutputOperator<String, Map<String, Number>> oper = dag.addOperator(name, RedisNumberAggregateOutputOperator.class);
-    oper.setDatabase(dbIndex);
+    RedisNumberSummationMapOutputOperator<String, Map<String, Number>> oper = dag.addOperator(name, RedisNumberSummationMapOutputOperator.class);
+    oper.getStore().setDbIndex(dbIndex);
     return oper.input;
   }
 
@@ -207,7 +208,7 @@ public class Application implements StreamingApplication
     catch (NoSuchFieldException e) {
     }
 
-    oper.setTimeBucketFlags(DimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
+    oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
     return oper;
   }
 
@@ -330,7 +331,7 @@ public class Application implements StreamingApplication
     catch (NoSuchFieldException e) {
     }
 
-    oper.setTimeBucketFlags(DimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
+    oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
     return oper;
   }
 
@@ -387,7 +388,7 @@ public class Application implements StreamingApplication
     catch (NoSuchFieldException e) {
     }
 
-    oper.setTimeBucketFlags(DimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
+    oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
     return oper;
   }
 
@@ -427,7 +428,7 @@ public class Application implements StreamingApplication
     catch (NoSuchFieldException e) {
     }
 
-    oper.setTimeBucketFlags(DimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
+    oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
     return oper;
   }
 
@@ -471,7 +472,7 @@ public class Application implements StreamingApplication
     catch (NoSuchFieldException e) {
     }
 
-    oper.setTimeBucketFlags(DimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
+    oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
     return oper;
   }
 
@@ -651,20 +652,20 @@ public class Application implements StreamingApplication
     dag.addStream("filtered_topn_redis_count", apacheFilteredTopNCountOpr.top, filteredTopNCountToRedis.multiWindowDimensionInput);
 
     // redis output operators
-    RedisOutputOperator<String, String> redisOutTotalCount = dag.addOperator("RedisOutTotalCount", new RedisOutputOperator<String, String>());
-    redisOutTotalCount.setDatabase(15);
-    RedisOutputOperator<String, String> redisOutTotalSumBytes = dag.addOperator("RedisOutTotalSumBytes", new RedisOutputOperator<String, String>());
-    redisOutTotalSumBytes.setDatabase(15);
-    RedisOutputOperator<String, String> redisOutTopNCount = dag.addOperator("RedisOutTopNCount", new RedisOutputOperator<String, String>());
-    redisOutTopNCount.setDatabase(15);
-    RedisOutputOperator<String, String> redisOutTopNSum = dag.addOperator("RedisOutTopNSum", new RedisOutputOperator<String, String>());
-    redisOutTopNSum.setDatabase(15);
-    RedisOutputOperator<String, String> redisOutFilteredTopNSum = dag.addOperator("RedisOutFilteredTopNSum", new RedisOutputOperator<String, String>());
-    redisOutFilteredTopNSum.setDatabase(15);
+    RedisKeyValPairOutputOperator<String, String> redisOutTotalCount = dag.addOperator("RedisOutTotalCount", new RedisKeyValPairOutputOperator<String, String>());
+    redisOutTotalCount.getStore().setDbIndex(15);
+    RedisKeyValPairOutputOperator<String, String> redisOutTotalSumBytes = dag.addOperator("RedisOutTotalSumBytes", new RedisKeyValPairOutputOperator<String, String>());
+    redisOutTotalSumBytes.getStore().setDbIndex(15);
+    RedisMapOutputOperator<String, String> redisOutTopNCount = dag.addOperator("RedisOutTopNCount", new RedisMapOutputOperator<String, String>());
+    redisOutTopNCount.getStore().setDbIndex(15);
+    RedisMapOutputOperator<String, String> redisOutTopNSum = dag.addOperator("RedisOutTopNSum", new RedisMapOutputOperator<String, String>());
+    redisOutTopNSum.getStore().setDbIndex(15);
+    RedisMapOutputOperator<String, String> redisOutFilteredTopNSum = dag.addOperator("RedisOutFilteredTopNSum", new RedisMapOutputOperator<String, String>());
+    redisOutFilteredTopNSum.getStore().setDbIndex(15);
 
     // redis output streams
-    dag.addStream("apache_log_counter_to_redis", apacheLogCounterToRedis.keyValPairOutput, redisOutTotalCount.inputInd);
-    dag.addStream("apache_log_bytes_sum_to_redis", apacheLogBytesSumToRedis.keyValPairOutput, redisOutTotalSumBytes.inputInd);
+    dag.addStream("apache_log_counter_to_redis", apacheLogCounterToRedis.keyValPairOutput, redisOutTotalCount.input);
+    dag.addStream("apache_log_bytes_sum_to_redis", apacheLogBytesSumToRedis.keyValPairOutput, redisOutTotalSumBytes.input);
     dag.addStream("apache_log_dimension_counter_to_redis", topNCountToRedis.keyValueMapOutput, redisOutTopNCount.input);
     dag.addStream("apache_log_dimension_sum_to_redis", topNSumToRedis.keyValueMapOutput, redisOutTopNSum.input);
     dag.addStream("apache_log_filtered_dimension_count_to_redis", filteredTopNCountToRedis.keyValueMapOutput, redisOutFilteredTopNSum.input);

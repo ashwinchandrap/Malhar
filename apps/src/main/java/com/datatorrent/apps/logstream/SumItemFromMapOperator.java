@@ -17,7 +17,7 @@ package com.datatorrent.apps.logstream;
 
 import java.util.Map;
 
-import com.esotericsoftware.kryo.NotNull;
+import javax.validation.constraints.NotNull;
 
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.DefaultInputPort;
