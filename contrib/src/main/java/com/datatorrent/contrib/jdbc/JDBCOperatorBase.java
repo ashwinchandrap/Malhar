@@ -18,24 +18,28 @@ package com.datatorrent.contrib.jdbc;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
+
 import javax.validation.constraints.NotNull;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datatorrent.lib.database.DBConnector;
+
 /**
- * Base class for all JDBC input output operators.
- * This handles JDBC connection and column mapping for output operators.
+ * Handles JDBC connection parameters and driver.
  *
  * @since 0.3.2
  */
-public abstract class JDBCOperatorBase
+public class JDBCOperatorBase implements DBConnector
 {
-  private static final Logger logger = LoggerFactory.getLogger(JDBCOperatorBase.class);
-
   @NotNull
   private String dbUrl;
   @NotNull
   private String dbDriver;
+  private String userName;
+  private String password;
   protected transient Connection connection = null;
 
   @NotNull
@@ -66,14 +70,42 @@ public abstract class JDBCOperatorBase
   }
 
   /**
+   * Sets the user name.
+   *
+   * @param userName user name.
+   */
+  public void setUserName(String userName)
+  {
+    this.userName = userName;
+  }
+
+  /**
+   * Sets the password.
+   *
+   * @param password password
+   */
+  public void setPassword(String password)
+  {
+    this.password = password;
+  }
+
+  /**
    * Create connection with database using JDBC.
    */
-  public void setupJDBCConnection()
+  @Override
+  public void setupDbConnection()
   {
     try {
       // This will load the JDBC driver, each DB has its own driver
       Class.forName(dbDriver).newInstance();
-      connection = DriverManager.getConnection(dbUrl);
+      Properties connectionProps = new Properties();
+      if (userName != null) {
+        connectionProps.put("user", this.userName);
+      }
+      if (password != null) {
+        connectionProps.put("password", this.password);
+      }
+      connection = DriverManager.getConnection(dbUrl, connectionProps);
 
       logger.debug("JDBC connection Success");
     }
@@ -88,7 +120,8 @@ public abstract class JDBCOperatorBase
   /**
    * Close JDBC connection.
    */
-  public void closeJDBCConnection()
+  @Override
+  public void teardownDbConnection()
   {
     try {
       connection.close();
@@ -97,4 +130,6 @@ public abstract class JDBCOperatorBase
       throw new RuntimeException("Error while closing database resource", ex);
     }
   }
+
+  private static final Logger logger = LoggerFactory.getLogger(JDBCOperatorBase.class);
 }

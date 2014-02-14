@@ -180,22 +180,13 @@ public class Application implements StreamingApplication
   {
 
     try {
-      if (LAUNCHMODE_YARN.equals(conf.get(DAG.LAUNCH_MODE))) {
-        // settings only affect distributed mode
-        dag.setAttribute(DAG.CONTAINER_MEMORY_MB, 8192);
-        dag.setAttribute(DAG.MASTER_MEMORY_MB, 8192);
-        //dag.getAttributes().attr(DAG.CONTAINERS_MAX_COUNT).setIfAbsent(1);
-      }
-      else if (LAUNCHMODE_LOCAL.equals(conf.get(DAG.LAUNCH_MODE))) {
-      }
-
       String gatewayAddress = dag.getValue(DAGContext.GATEWAY_ADDRESS);
       if (gatewayAddress == null) {
         gatewayAddress = "localhost:9090";
       }
       URI duri = URI.create("ws://" + gatewayAddress + "/pubsub");
 
-      dag.setAttribute(DAG.APPLICATION_NAME, "FraudDetectionDemoApplication");
+      dag.setAttribute(DAG.APPLICATION_NAME, "FraudDetectionApplication");
       dag.setAttribute(DAG.DEBUG, false);
       dag.setAttribute(DAG.STREAMING_WINDOW_SIZE_MILLIS, 1000);
 

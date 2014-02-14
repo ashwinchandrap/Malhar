@@ -34,7 +34,12 @@ public class PubSubWebSocketInputOperator extends WebSocketInputOperator
 {
   private static final Logger LOG = LoggerFactory.getLogger(PubSubWebSocketInputOperator.class);
   private HashSet<String> topics = new HashSet<String>();
-  private transient PubSubMessageCodec<Object> codec = new PubSubMessageCodec<Object>(mapper);
+  private transient PubSubMessageCodec<Object> codec;
+
+  public PubSubWebSocketInputOperator()
+  {
+    this.codec = new PubSubMessageCodec<Object>(mapper);
+  }
 
   public void addTopic(String topic)
   {
@@ -43,7 +48,7 @@ public class PubSubWebSocketInputOperator extends WebSocketInputOperator
 
   @SuppressWarnings("unchecked")
   @Override
-  public Map<String, String> convertMessageToMap(String message) throws IOException
+  protected Map<String, String> convertMessageToMap(String message) throws IOException
   {
     Map<String, Object> map = mapper.readValue(message, HashMap.class);
     return (Map<String, String>)map.get("data");
