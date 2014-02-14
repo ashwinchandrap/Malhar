@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
-public class Util
+public class LogstreamUtil
 {
   public static final int TIMEBUCKET_MINUTE = 1;
   public static final int TIMEBUCKET_HOUR = 2;

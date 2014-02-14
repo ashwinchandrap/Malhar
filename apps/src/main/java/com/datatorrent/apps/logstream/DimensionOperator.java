@@ -4,6 +4,11 @@
  */
 package com.datatorrent.apps.logstream;
 
+import com.datatorrent.api.*;
+import com.datatorrent.api.Operator.Unifier;
+import com.datatorrent.api.Partitionable.Partition;
+import com.datatorrent.api.Partitionable.PartitionKeys;
+
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -20,14 +25,13 @@ import org.apache.commons.lang.mutable.MutableDouble;
 import com.datatorrent.lib.logs.DimensionObject;
 import com.datatorrent.lib.util.KryoSerializableStreamCodec;
 
-import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
-import com.datatorrent.apps.logstream.Util.AggregateOperation;
+import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 
 /**
  *
@@ -170,7 +174,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
             for (Entry<String, HashSet<AggregateOperation>> entry : valueOperationTypes.entrySet()) {
               String valueKeyName = entry.getKey();
               Object value = tuple.get(valueKeyName);
-              Number numberValue = Util.extractNumber(value);
+              Number numberValue = LogstreamUtil.extractNumber(value);
               DimensionOperator.this.doComputations(timeBucket, dimensionCombinationId, dimValueName, valueKeyName, numberValue);
             }
           }
@@ -186,29 +190,29 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       time = (Long)tuple.get(timeKeyName);
     }
     else {
-      time = Util.extractTime(currentWindowId, windowWidth);
+      time = LogstreamUtil.extractTime(currentWindowId, windowWidth);
     }
 
     calendar.setTimeInMillis(time);
 
     List<String> timeBucketList = new ArrayList<String>();
 
-    if ((timeBucketFlags & Util.TIMEBUCKET_YEAR) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_YEAR) != 0) {
       timeBucketList.add(String.format("Y|%04d", calendar.get(Calendar.YEAR)));
     }
-    if ((timeBucketFlags & Util.TIMEBUCKET_MONTH) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_MONTH) != 0) {
       timeBucketList.add(String.format("M|%04d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1));
     }
-    if ((timeBucketFlags & Util.TIMEBUCKET_WEEK) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_WEEK) != 0) {
       timeBucketList.add(String.format("W|%04d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.WEEK_OF_YEAR)));
     }
-    if ((timeBucketFlags & Util.TIMEBUCKET_DAY) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_DAY) != 0) {
       timeBucketList.add(String.format("D|%04d%02d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH)));
     }
-    if ((timeBucketFlags & Util.TIMEBUCKET_HOUR) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_HOUR) != 0) {
       timeBucketList.add(String.format("h|%04d%02d%02d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.HOUR_OF_DAY)));
     }
-    if ((timeBucketFlags & Util.TIMEBUCKET_MINUTE) != 0) {
+    if ((timeBucketFlags & LogstreamUtil.TIMEBUCKET_MINUTE) != 0) {
       timeBucketList.add(String.format("m|%04d%02d%02d%02d%02d", calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1, calendar.get(Calendar.DAY_OF_MONTH), calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE)));
     }
 
@@ -441,7 +445,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       String[] split = inputs.split("=", 2);
       if (split[0].toLowerCase().equals("timebucket")) {
 
-        int timeBucket = Util.extractTimeBucket(split[1]);
+        int timeBucket = LogstreamUtil.extractTimeBucket(split[1]);
         if (timeBucket == 0) {
           logger.error("invalid time bucket", split[1]);
         }

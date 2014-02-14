@@ -8,7 +8,7 @@ import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator.Unifier;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
-import com.datatorrent.apps.logstream.Util.AggregateOperation;
+import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 import com.datatorrent.lib.logs.DimensionObject;
 import java.util.HashMap;
 import java.util.Iterator;
