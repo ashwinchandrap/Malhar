@@ -10,7 +10,6 @@ import com.datatorrent.api.Operator.Unifier;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.apps.logstream.Util.AggregateOperation;
 import com.datatorrent.lib.logs.DimensionObject;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -36,6 +35,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   @Override
   public void process(Map<String, DimensionObject<String>> tuple)
   {
+    //logger.info("tuple received...processing...");
     if (firstTuple) {
       DimensionOperatorUnifier.this.extractType(tuple);
       firstTuple = false;
@@ -61,6 +61,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
       logger.error("expected filter = {} received = {}", expectedFilter, receivedFilter);
     }
 
+    //logger.info("tuple received...processing...");
     DimensionOperatorUnifier.this.computeAddition(tuple, AggregateOperation.SUM, key);
     DimensionOperatorUnifier.this.computeAddition(tuple, AggregateOperation.COUNT, key);
     DimensionOperatorUnifier.this.computeAverage(tuple, AggregateOperation.AVERAGE, key);
@@ -135,13 +136,13 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
           }
         }
         else {
-          Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+          Map<AggregateOperation, Number> newAggrs = new HashMap<AggregateOperation, Number>();
           newAggrs.put(opType, dimObj.getCount().doubleValue());
           cacheAggrs.put(dimObj.getVal(), newAggrs);
         }
       }
       else {
-        Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+        Map<AggregateOperation, Number> newAggrs = new HashMap<AggregateOperation, Number>();
         Map<String, Map<AggregateOperation, Number>> cacheAggrs = new HashMap<String, Map<AggregateOperation, Number>>();
 
         newAggrs.put(opType, dimObj.getCount().doubleValue());
@@ -179,13 +180,13 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
           }
         }
         else {
-          Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+          Map<AggregateOperation, Number> newAggrs = new HashMap<AggregateOperation, Number>();
           newAggrs.put(opType, dimObj.getCount().doubleValue());
           cacheAggrs.put(dimObj.getVal(), newAggrs);
         }
       }
       else {
-        Map<AggregateOperation, Number> newAggrs = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+        Map<AggregateOperation, Number> newAggrs = new HashMap<AggregateOperation, Number>();
         Map<String, Map<AggregateOperation, Number>> cacheAggrs = new HashMap<String, Map<AggregateOperation, Number>>();
 
         newAggrs.put(opType, dimObj.getCount().doubleValue());
@@ -206,7 +207,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   @Override
   public void endWindow()
   {
-    //logger.info("in end window, cache object size = {}", cacheObject.size());
+    logger.info("in end window, cache object size = {}", cacheObject.size());
     Map<String, DimensionObject<String>> outputAggregationsObject;
 
     for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
@@ -229,7 +230,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
           outputAggregationsObject.put(outKey, outDimObj);
 
         }
-        //logger.info("emitting tuple {}", outputAggregationsObject);
+        //logger.info("emitting tuple");
         aggregationsOutput.emit(outputAggregationsObject);
       }
 

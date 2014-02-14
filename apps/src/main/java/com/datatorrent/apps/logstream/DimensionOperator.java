@@ -4,24 +4,30 @@
  */
 package com.datatorrent.apps.logstream;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+
+import javax.validation.constraints.NotNull;
+
+import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.apache.commons.lang.mutable.MutableDouble;
+
+import com.datatorrent.lib.logs.DimensionObject;
+import com.datatorrent.lib.util.KryoSerializableStreamCodec;
+
 import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
-import com.datatorrent.api.annotation.ShipContainingJars;
+
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 import com.datatorrent.apps.logstream.Util.AggregateOperation;
-import com.datatorrent.lib.logs.DimensionObject;
-import com.datatorrent.lib.util.KryoSerializableStreamCodec;
-import com.google.common.collect.Sets;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-import javax.validation.constraints.NotNull;
-import org.apache.commons.lang.mutable.MutableDouble;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -285,7 +291,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
         aggregations = dimValueNames.get(dimValueName);
       }
       else {
-        aggregations = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+        aggregations = new HashMap<AggregateOperation, Number>();
         for (AggregateOperation aggregationType : valueOperationTypes.get(valueKeyName)) {
           aggregations.put(aggregationType, new MutableDouble(0));
         }
@@ -295,7 +301,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     }
     else {
       Map<String, Map<AggregateOperation, Number>> newDimValueNames = new HashMap<String, Map<AggregateOperation, Number>>();
-      aggregations = new EnumMap<AggregateOperation, Number>(AggregateOperation.class);
+      aggregations = new HashMap<AggregateOperation, Number>();
       for (AggregateOperation aggregationType : valueOperationTypes.get(valueKeyName)) {
         aggregations.put(aggregationType, new MutableDouble(0));
       }
@@ -333,6 +339,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   @Override
   public void endWindow()
   {
+    //logger.info("cache object size = {}", cacheObject.size());
     HashMap<String, DimensionObject<String>> outputAggregationsObject;
     for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : cacheObject.entrySet()) {
       String key = keys.getKey();
@@ -354,6 +361,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
           outputAggregationsObject.put(outKey, outDimObj);
 
         }
+        //logger.info("emitting tuple...{}", outputAggregationsObject);
         aggregationsOutput.emit(outputAggregationsObject);
       }
 
@@ -604,15 +612,6 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   public static class DimensionOperatorStreamCodec extends KryoSerializableStreamCodec<Map<String, Object>>
   {
-    /*
-    private LogstreamPropertyRegistry registry;
-
-    public void setRegistry(LogstreamPropertyRegistry registry)
-    {
-      this.registry = registry;
-    }
-    */
-
     @Override
     public int getPartition(Map<String, Object> o)
     {
