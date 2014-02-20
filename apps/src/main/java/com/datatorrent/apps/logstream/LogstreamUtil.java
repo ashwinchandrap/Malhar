@@ -14,12 +14,13 @@ import java.util.Map;
  */
 public class LogstreamUtil
 {
-  public static final int TIMEBUCKET_MINUTE = 1;
-  public static final int TIMEBUCKET_HOUR = 2;
-  public static final int TIMEBUCKET_DAY = 4;
-  public static final int TIMEBUCKET_WEEK = 8;
-  public static final int TIMEBUCKET_MONTH = 16;
-  public static final int TIMEBUCKET_YEAR = 32;
+  public static final int TIMEBUCKET_SECOND = 1;
+  public static final int TIMEBUCKET_MINUTE = 2;
+  public static final int TIMEBUCKET_HOUR = 4;
+  public static final int TIMEBUCKET_DAY = 8;
+  public static final int TIMEBUCKET_WEEK = 16;
+  public static final int TIMEBUCKET_MONTH = 32;
+  public static final int TIMEBUCKET_YEAR = 64;
 
   public enum AggregateOperation
   {
@@ -54,7 +55,10 @@ public class LogstreamUtil
 
   public static int extractTimeBucket(String bucket) {
     int timeBucket = 0;
-    if (bucket.equals("m")) {
+    if (bucket.equals("s")) {
+      timeBucket = TIMEBUCKET_SECOND;
+    }
+    else if (bucket.equals("m")) {
       timeBucket = TIMEBUCKET_MINUTE;
     }
     else if (bucket.equals("h")) {
