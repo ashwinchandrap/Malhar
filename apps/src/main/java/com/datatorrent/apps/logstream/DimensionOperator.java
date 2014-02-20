@@ -116,21 +116,21 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       outTimeBuckets = new ArrayList<String>(timeBucketList);
 
       // create all dimension combinations if not specified by user
-      if (!dimensionCombinationList.containsKey((Integer)recordType.get("LOG_TYPE"))) {
+      if (!dimensionCombinationList.containsKey((Integer)recordType.get(LogstreamUtil.LOG_TYPE))) {
         DimensionOperator.this.createAllDimensionCombinations();
       }
 
-      dimensionCombinations = dimensionCombinationList.get((Integer)recordType.get("LOG_TYPE"));
-      valueOperationTypes = valueOperations.get((Integer)recordType.get("LOG_TYPE"));
+      dimensionCombinations = dimensionCombinationList.get((Integer)recordType.get(LogstreamUtil.LOG_TYPE));
+      valueOperationTypes = valueOperations.get((Integer)recordType.get(LogstreamUtil.LOG_TYPE));
       firstTuple = false;
     }
 
     // temporary validation to ensure that unexpected records do not appear in any partition
-    Number receivedLogType = (Number)tuple.get("LOG_TYPE");
-    Number receivedFilter = (Number)tuple.get("FILTER");
+    Number receivedLogType = (Number)tuple.get(LogstreamUtil.LOG_TYPE);
+    Number receivedFilter = (Number)tuple.get(LogstreamUtil.FILTER);
 
-    Number expectedLogType = recordType.get("LOG_TYPE");
-    Number expectedFilter = recordType.get("FILTER");
+    Number expectedLogType = recordType.get(LogstreamUtil.LOG_TYPE);
+    Number expectedFilter = recordType.get(LogstreamUtil.FILTER);
 
     if (!receivedLogType.equals(expectedLogType) || !receivedFilter.equals(expectedFilter)) {
       logger.error("Unexpected tuple");
@@ -208,7 +208,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   private void doComputations(String timeBucket, Integer dimensionCombinationId, String dimValueName, String valueKeyName, Number value)
   {
     StringBuilder sb = new StringBuilder();
-    sb.append(timeBucket).append("|").append(recordType.get("LOG_TYPE")).append("|").append(recordType.get("FILTER")).append("|").append(dimensionCombinationId).append("|").append(valueKeyName);
+    sb.append(timeBucket).append("|").append(recordType.get(LogstreamUtil.LOG_TYPE)).append("|").append(recordType.get(LogstreamUtil.FILTER)).append("|").append(dimensionCombinationId).append("|").append(valueKeyName);
 
     //final key format --> timebucket|type|filter|dimId|val
     //eg: m|201311230108|1|4|10|bytes
@@ -400,8 +400,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       }
     }
 
-    dimensionCombinationList.put(registry.getIndex("LOG_TYPE", type), dimCombinations);
-    valueOperations.put(registry.getIndex("LOG_TYPE", type), valOpTypes);
+    dimensionCombinationList.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), dimCombinations);
+    valueOperations.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), valOpTypes);
   }
 
   @Override
@@ -420,7 +420,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   public Collection<Partition<DimensionOperator>> definePartitions(Collection<Partition<DimensionOperator>> partitions, int incrementalCapacity)
   {
     ArrayList<Partition<DimensionOperator>> newPartitions = new ArrayList<Partition<DimensionOperator>>();
-    String[] filters = registry.list("FILTER");
+    String[] filters = registry.list(LogstreamUtil.FILTER);
     int partitionSize;
 
     if (partitions.size() == 1) {
@@ -455,7 +455,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       Partition<DimensionOperator> partition = newPartitions.get(i);
       String partitionVal = filters[i % filters.length];
       int bits = i / filters.length;
-      int filterId = registry.getIndex("FILTER", partitionVal);
+      int filterId = registry.getIndex(LogstreamUtil.FILTER, partitionVal);
       filterId = 0xffff & filterId; // clear out first 16 bits
       int partitionKey = (bits << 16) | filterId; // first 16 bits for dynamic partitioning, last 16 bits for functional partitioning
       logger.debug("partitionKey = {} partitionMask = {}", Integer.toBinaryString(partitionKey), Integer.toBinaryString(partitionMask));
@@ -472,16 +472,16 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   private void extractType(Map<String, Object> tuple)
   {
-    recordType.put("LOG_TYPE", (Number)tuple.get("LOG_TYPE"));
-    recordType.put("FILTER", (Number)tuple.get("FILTER"));
+    recordType.put(LogstreamUtil.LOG_TYPE, (Number)tuple.get(LogstreamUtil.LOG_TYPE));
+    recordType.put(LogstreamUtil.FILTER, (Number)tuple.get(LogstreamUtil.FILTER));
   }
 
   private void createAllDimensionCombinations()
   {
-    logger.info("need to create all dimensions for type {}", recordType.get("LOG_TYPE"));
+    logger.info("need to create all dimensions for type {}", recordType.get(LogstreamUtil.LOG_TYPE));
     //TODO create all dim combinations
     // temporary code to skip null pointer
-    dimensionCombinationList.put((Integer)recordType.get("LOG_TYPE"), new ArrayList<Integer>());
+    dimensionCombinationList.put((Integer)recordType.get(LogstreamUtil.LOG_TYPE), new ArrayList<Integer>());
   }
 
   public static class DimensionOperatorStreamCodec extends KryoSerializableStreamCodec<Map<String, Object>>
@@ -493,7 +493,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     {
       int ret = 0;
 
-      int filterId = (Integer)o.get("FILTER");
+      int filterId = (Integer)o.get(LogstreamUtil.FILTER);
       int hashCode = o.hashCode();
 
       filterId = 0xffff & filterId; // clear out first 16 bits

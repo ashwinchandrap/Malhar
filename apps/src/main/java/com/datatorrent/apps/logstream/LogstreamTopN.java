@@ -68,7 +68,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
 
     String[] split = randomKey.split("\\|");
     Number receivedFilter = new Integer(split[3]);
-    Number expectedFilter = recordType.get("FILTER");
+    Number expectedFilter = recordType.get(LogstreamUtil.FILTER);
 
     if (!receivedFilter.equals(expectedFilter)) {
       logger.error("Unexpected tuple");
@@ -99,7 +99,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
   public Collection<Partition<LogstreamTopN>> definePartitions(Collection<Partition<LogstreamTopN>> partitions, int incrementalCapacity)
   {
     ArrayList<Partition<LogstreamTopN>> newPartitions = new ArrayList<Partition<LogstreamTopN>>();
-    String[] filters = registry.list("FILTER");
+    String[] filters = registry.list(LogstreamUtil.FILTER);
     int partitionSize;
 
     if (partitions.size() == 1) {
@@ -135,7 +135,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
       Partition<LogstreamTopN> partition = newPartitions.get(i);
       String partitionVal = filters[i % filters.length];
       int bits = i / filters.length;
-      int filterId = registry.getIndex("FILTER", partitionVal);
+      int filterId = registry.getIndex(LogstreamUtil.FILTER, partitionVal);
       filterId = 0xffff & filterId; // clear out first 16 bits
       int partitionKey = (bits << 16) | filterId; // first 16 bits for dynamic partitioning, last 16 bits for functional partitioning
       logger.debug("partitionKey = {} partitionMask = {}", Integer.toBinaryString(partitionKey), Integer.toBinaryString(partitionMask));
@@ -157,7 +157,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     String[] split = randomKey.split("\\|");
     Number filterId = new Integer(split[3]);
 
-    recordType.put("FILTER", filterId);
+    recordType.put(LogstreamUtil.FILTER, filterId);
 
   }
 

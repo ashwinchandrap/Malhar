@@ -66,24 +66,24 @@ public class FilterOperator extends BaseOperator
     public void process(Map<String, Object> map)
     {
       HashMap<String, Object> filterTuple;
-      int typeId = (Integer)map.get("LOG_TYPE");
+      int typeId = (Integer)map.get(LogstreamUtil.LOG_TYPE);
       Map<String, String[]> conditions = conditionList.get(typeId);
       if (conditions != null) {
         for (String condition : conditions.keySet()) {
           if (evaluate(condition, map, conditions.get(condition))) {
-            int index = registry.getIndex("FILTER", condition);
+            int index = registry.getIndex(LogstreamUtil.FILTER, condition);
             filterTuple = new HashMap<String, Object>(map);
-            filterTuple.put("FILTER", index);
+            filterTuple.put(LogstreamUtil.FILTER, index);
             outputMap.emit(filterTuple);
           }
         }
       }
 
       // emit the same tuple for default condition
-      int defaultFilterIndex = registry.getIndex("FILTER", registry.lookupValue(typeId) + "_" + "DEFAULT");
+      int defaultFilterIndex = registry.getIndex(LogstreamUtil.FILTER, registry.lookupValue(typeId) + "_" + "DEFAULT");
 
       if (defaultFilterIndex >= 0) {
-        map.put("FILTER", defaultFilterIndex);
+        map.put(LogstreamUtil.FILTER, defaultFilterIndex);
         outputMap.emit((HashMap<String, Object>)map);
       }
     }
@@ -137,14 +137,14 @@ public class FilterOperator extends BaseOperator
       String type = split[1];
       String[] split1 = condition[1].split("=");
       if (split1[1].toLowerCase().equals("true")) {
-        registry.bind("FILTER", type + "_" + "DEFAULT");
+        registry.bind(LogstreamUtil.FILTER, type + "_" + "DEFAULT");
       }
 
     }
     else if (condition.length == 3) {
       String[] split = condition[0].split("=");
       String type = split[1];
-      int typeId = registry.getIndex("LOG_TYPE", type);
+      int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, type);
       String[] keys = new String[condition.length - 2];
 
       System.arraycopy(condition, 1, keys, 0, keys.length);
@@ -162,7 +162,7 @@ public class FilterOperator extends BaseOperator
 
       conditions.put(expression, keys);
       if (registry != null) {
-        registry.bind("FILTER", expression);
+        registry.bind(LogstreamUtil.FILTER, expression);
       }
     }
     else {

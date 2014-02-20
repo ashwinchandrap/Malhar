@@ -52,8 +52,8 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     String inputString = new String(message);
     try {
       JSONObject jSONObject = new JSONObject(inputString);
-      int typeId = registry.getIndex("LOG_TYPE", RabbitMQLogsInputOperator.this.routingKey);
-      jSONObject.put("LOG_TYPE", typeId);
+      int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, RabbitMQLogsInputOperator.this.routingKey);
+      jSONObject.put(LogstreamUtil.LOG_TYPE, typeId);
       String outputString = jSONObject.toString();
       message = outputString.getBytes();
     }
@@ -84,7 +84,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     if (props[4] != null) {
       RabbitMQLogsInputOperator.this.routingKeys = props[4].split(":");
       for (String rKey : routingKeys) {
-        registry.bind("LOG_TYPE", rKey);
+        registry.bind(LogstreamUtil.LOG_TYPE, rKey);
       }
     }
   }
