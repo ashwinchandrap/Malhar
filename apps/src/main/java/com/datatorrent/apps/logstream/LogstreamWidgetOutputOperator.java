@@ -11,10 +11,14 @@ import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 import com.datatorrent.lib.io.WidgetOutputOperator;
 import com.datatorrent.lib.logs.DimensionObject;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import javax.validation.constraints.NotNull;
+import org.apache.commons.lang.mutable.MutableDouble;
 import org.apache.commons.lang3.tuple.MutablePair;
 
 /**
@@ -43,6 +47,7 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
 
   public class LogstreamTopNInputPort extends DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>
   {
+    NumberFormat formatter = new DecimalFormat("#0.00");
     private LogstreamWidgetOutputOperator operator;
 
     public LogstreamTopNInputPort(LogstreamWidgetOutputOperator oper)
@@ -97,7 +102,8 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
       for (Entry<String, Number> e : topNMap.entrySet()) {
         result[j] = new HashMap<String, Object>();
         result[j].put("name", e.getKey());
-        result[j++].put("value", e.getValue());
+        String val = formatter.format(e.getValue());
+        result[j++].put("value", val);
       }
       if (operator.isWebSocketConnected) {
         schemaObj.put("type", "topN");
