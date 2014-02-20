@@ -12,26 +12,22 @@ package com.datatorrent.apps.logstream;
  *  Copyright (c) 2012-2014 Malhar, Inc.
  *  All Rights Reserved.
  */
-import com.datatorrent.api.*;
-import com.datatorrent.api.Context.OperatorContext;
-import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import org.codehaus.janino.CompileException;
 import org.codehaus.janino.ExpressionEvaluator;
-import org.codehaus.janino.Parser.ParseException;
-import org.codehaus.janino.Scanner.ScanException;
+import org.slf4j.LoggerFactory;
 
+import com.datatorrent.api.*;
+import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.api.annotation.ShipContainingJars;
+
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
-import java.util.*;
-import org.slf4j.LoggerFactory;
+import com.datatorrent.common.util.DTThrowable;
 
 /**
  *
@@ -71,7 +67,6 @@ public class FilterOperator extends BaseOperator
     {
       HashMap<String, Object> filterTuple;
       int typeId = (Integer)map.get("LOG_TYPE");
-      //Object resp = map.get("response");
       Map<String, String[]> conditions = conditionList.get(typeId);
       if (conditions != null) {
         for (String condition : conditions.keySet()) {
@@ -87,9 +82,7 @@ public class FilterOperator extends BaseOperator
       // emit the same tuple for default condition
       int defaultFilterIndex = registry.getIndex("FILTER", registry.lookupValue(typeId) + "_" + "DEFAULT");
 
-      //logger.info("default filter index = {} lookupName for typeid {} is {}", defaultFilterIndex, typeId, registry.lookupValue(typeId));
-
-      if (defaultFilterIndex >=0) {
+      if (defaultFilterIndex >= 0) {
         map.put("FILTER", defaultFilterIndex);
         outputMap.emit((HashMap<String, Object>)map);
       }
@@ -99,7 +92,6 @@ public class FilterOperator extends BaseOperator
     {
       boolean ret = false;
 
-      //String[] keys = conditions.get(condition);
       Object[] values = new Object[keys.length];
       Class[] classTypes = new Class[keys.length];
       ExpressionEvaluator ee = evaluators.get(condition);
@@ -107,20 +99,9 @@ public class FilterOperator extends BaseOperator
       try {
         for (int i = 0; i < keys.length; i++) {
           Object val = map.get(keys[i]);
-          //Object val = new String("404");
-        /*
-           if (((String)val).compareTo("404") == 0) {
-           logger.info("EQUALSSSSS");
-           }
-           char[] valCharArr = val.toString().toCharArray();
-           logger.info("value is {} and length is {} bytes are {}", val, val.toString().length(), val.toString().getBytes());
-           for (Character elem : valCharArr) {
-           System.out.print(elem + " | ");
 
-           }
-           */
           if (val == null) {
-            logger.info("filter key {} missing in input record {}", keys[i], map);
+            logger.debug("filter key {} missing in input record {}", keys[i], map);
             return ret;
           }
           else {
@@ -134,49 +115,22 @@ public class FilterOperator extends BaseOperator
           evaluators.put(condition, ee);
         }
 
-
-
-        //ee = new ExpressionEvaluator(condition, Boolean.class, keys, classTypes);
-        //ExpressionEvaluator ee = new ExpressionEvaluator(condition, Boolean.class, keys, classTypes);
         ret = (Boolean)ee.evaluate(values);
-        //Object evaluate = ee.evaluate(values);
         logger.debug("expression evaluated to {} for expression: {} with key class types: {} keys: {} values: {}", ret, condition, Arrays.toString(classTypes), Arrays.toString(keys), Arrays.toString(values));
 
       }
-      catch (CompileException ex) {
-        Logger.getLogger(FilterOperator.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      catch (ParseException ex) {
-        Logger.getLogger(FilterOperator.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      catch (ScanException ex) {
-        Logger.getLogger(FilterOperator.class.getName()).log(Level.SEVERE, null, ex);
-      }
-      catch (InvocationTargetException ex) {
-        Logger.getLogger(FilterOperator.class.getName()).log(Level.SEVERE, null, ex);
+      catch (Throwable t) {
+        DTThrowable.rethrow(t);
       }
 
       return ret;
-
     }
 
-    /**
-     * Stream codec used for partitioning.
-     *
-     * @Override
-     * public Class<? extends StreamCodec<Map<String, Object>>> getStreamCodec()
-     * {
-     * return FilterOperatorStreamCodec.class;
-     * }
-     */
   };
 
   public void addFilterCondition(String[] condition)
   {
-    // list of keys followed by the expressions, all entities separated by semi colon
-    //type=apache,a,b,c,a==1&&b==2&&c=="abc"
-    //String[] split = condition.split(";");
-
+    // TODO: validations
     if (condition.length == 2) {
       logger.info(Arrays.toString(condition));
       String[] split = condition[0].split("=");
@@ -186,7 +140,8 @@ public class FilterOperator extends BaseOperator
         registry.bind("FILTER", type + "_" + "DEFAULT");
       }
 
-    } else if (condition.length == 3) {
+    }
+    else if (condition.length == 3) {
       String[] split = condition[0].split("=");
       String type = split[1];
       int typeId = registry.getIndex("LOG_TYPE", type);
@@ -209,115 +164,12 @@ public class FilterOperator extends BaseOperator
       if (registry != null) {
         registry.bind("FILTER", expression);
       }
-    } else {
+    }
+    else {
       //THROW ERROR
     }
   }
 
-  //@OutputPortFieldAnnotation(name = "outputFilterMap")
-  //public final transient DefaultOutputPort<HashMap<String, Map<String, Object>>> outputFilterMap = new DefaultOutputPort<HashMap<String, Map<String, Object>>>();
   @OutputPortFieldAnnotation(name = "outputMap")
   public final transient DefaultOutputPort<HashMap<String, Object>> outputMap = new DefaultOutputPort<HashMap<String, Object>>();
-
-  /*
-   @Override
-   public Collection<Partition<FilterOperator>> definePartitions(Collection<Partition<FilterOperator>> partitions, int incrementalCapacity)
-   {
-   ArrayList<Partition<FilterOperator>> newPartitions = new ArrayList<Partition<FilterOperator>>();
-   //int partitionSize = LOG_TYPE.values().length;
-   String[] logTypes = registry.list("LOG_TYPE");
-   int partitionSize = logTypes.length;l
-   int expectedPartitionSize;
-   if (partitions.size() == 1) {
-   // initial partitioning
-   expectedPartitionSize = partitionSize;
-   } else {
-   // TODO: figure out what to do in this scenerio
-   //expectedPartitionSize = partitionSize * 2;
-   expectedPartitionSize = partitionSize;
-   }
-
-   for (int i = 0; i < expectedPartitionSize; i++) {
-   FilterOperator filterOperator = new FilterOperator();
-
-   Partition<FilterOperator> partition = new DefaultPartition<FilterOperator>(filterOperator);
-   newPartitions.add(partition);
-   }
-
-   int partitionMask = -1; // all bits
-
-   for (int i=0; i <= newPartitions.size(); i++) {
-   Partition<FilterOperator> partition = newPartitions.get(i);
-   String partitionVal = logTypes[i % logTypes.length];
-   int key = registry.getIndex("LOG_TYPE", partitionVal);
-   partition.getPartitionKeys().put(input, new PartitionKeys(partitionMask, Sets.newHashSet(key)));
-   }
-
-   return newPartitions;
-
-   }
-   */
-
-  /* Default repartitioning should mostly be enough for repartitioning
-   @Override
-   public Response processStats(BatchedOperatorStats bos)
-   {
-   Response res = new Response();
-
-   //TODO: set res.repartitionRequired to true based on dynamic partitioning logic
-   // so that it calls definePartitions when its true
-
-   return res;
-
-   }
-   */
-
-  /*
-   public static class FilterOperatorStreamCodec extends KryoSerializableStreamCodec<Map<String, Object>>
-   {
-   @Override
-   public int getPartition(Map<String, Object> o)
-   {
-   /* LOGIC 1
-   int ret = 0;
-   //LOG_TYPE type = LOG_TYPE.valueOf(o.getClass().getSimpleName());
-   LOG_TYPE type = (LOG_TYPE)o.get("LOG_TYPE");
-
-   switch (type) {
-   case APACHE:
-   ret = 0;
-   break;
-   case MYSQL:
-   ret = 1;
-   break;
-   case SYS:
-   ret = 2;
-   break;
-   default: // APACHE
-   ret = 0;
-   }
-
-   return ret;
-
-
-   int ret;
-   String[] list = registry.list("LOG_TYPE");
-   if (list == null) {
-   return 0;
-   } else if (list.length == 0) {
-   return 0;
-   }
-
-   ret = registry.getIndex("LOG_TYPE", (String)o.get("LOG_TYPE"));
-   return ret;
-
-   }
-   }
-   */
-
-  /*
-   enum LOG_TYPE {
-   APACHE, MYSQL, SYS
-   }
-   */
 }

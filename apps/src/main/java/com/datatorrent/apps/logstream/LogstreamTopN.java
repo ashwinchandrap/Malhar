@@ -4,23 +4,28 @@
  */
 package com.datatorrent.apps.logstream;
 
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+
+import javax.validation.constraints.NotNull;
+
+import com.google.common.collect.Sets;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.datatorrent.lib.algo.TopN;
+import com.datatorrent.lib.logs.DimensionObject;
+import com.datatorrent.lib.util.KryoSerializableStreamCodec;
+
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultPartition;
 import com.datatorrent.api.Partitionable;
 import com.datatorrent.api.StreamCodec;
+
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
-import com.datatorrent.lib.algo.TopN;
-import com.datatorrent.lib.logs.DimensionObject;
-import com.datatorrent.lib.util.KryoSerializableStreamCodec;
-import com.google.common.collect.Sets;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-import javax.validation.constraints.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 
 /**
  *
@@ -30,11 +35,9 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
 {
   private transient boolean firstTuple = true;
   private HashMap<String, Number> recordType = new HashMap<String, Number>();
-
   private static final Logger logger = LoggerFactory.getLogger(LogstreamTopN.class);
   @NotNull
   private PropertyRegistry<String> registry;
-
 
   public void setRegistry(PropertyRegistry<String> registry)
   {
@@ -51,7 +54,6 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
   @Override
   public void processTuple(Map<String, DimensionObject<String>> tuple)
   {
-    //logger.info("TOPN tuple received {}", tuple);
     if (firstTuple) {
       LogstreamTopN.this.extractType(tuple);
       firstTuple = false;
@@ -76,7 +78,6 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     super.processTuple(tuple);
   }
 
-
   @Override
   protected Object clone() throws CloneNotSupportedException
   {
@@ -87,7 +88,6 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     return logstreamTopN;
 
   }
-
 
   @Override
   protected Class<? extends StreamCodec<Map<String, DimensionObject<String>>>> getStreamCodec()
@@ -136,12 +136,9 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
       String partitionVal = filters[i % filters.length];
       int bits = i / filters.length;
       int filterId = registry.getIndex("FILTER", partitionVal);
-      logger.info("#ashwin TOPN OPERATOR PARTITIONING# filterId = {}", Integer.toBinaryString(filterId));
       filterId = 0xffff & filterId; // clear out first 16 bits
-      logger.info("#ashwin TOPN OPERATOR PARTITIONING# filterId after clearing first 16 bits = {}", Integer.toBinaryString(filterId));
       int partitionKey = (bits << 16) | filterId; // first 16 bits for dynamic partitioning, last 16 bits for functional partitioning
-      logger.info("#ashwin TOPN OPERATOR PARTITIONING# bits = {} partitionKey = {}", Integer.toBinaryString(bits), Integer.toBinaryString(partitionKey));
-      logger.info("#ashwin TOPN OPERATOR PARTITIONING# partitionMask = {}", Integer.toBinaryString(partitionMask));
+      logger.debug("partitionKey = {} partitionMask = {}", Integer.toBinaryString(partitionKey), Integer.toBinaryString(partitionMask));
       partition.getPartitionKeys().put(data, new PartitionKeys(partitionMask, Sets.newHashSet(partitionKey)));
     }
 
@@ -171,30 +168,18 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     {
       Iterator<String> iterator = t.keySet().iterator();
       String key = iterator.next();
+
       String[] split = key.split("\\|");
       int filterId = new Integer(split[3]); // filter id location in input record key
-
       int ret = 0;
-      PropertyRegistry<String> registry = LogstreamPropertyRegistry.getInstance();
-      String[] list = registry.list("FILTER");
-      if (list == null) {
-        return 0;
-      }
-      else if (list.length == 0) {
-        return 0;
-      }
-
       int hashCode = t.hashCode();
 
       filterId = 0xffff & filterId; // clear out first 16 bits
-
       ret = (hashCode << 16) | filterId; // first 16 bits represent hashcode, last 16 bits represent filter type
 
-      //logger.info("#ashwin TOPN OPERATOR GETPARTITION partitionkey = {} hashcode = {} filterId = {}",Integer.toBinaryString(ret), Integer.toBinaryString(hashCode), Integer.toBinaryString(filterId));
-
       return ret;
-
     }
 
   }
+
 }

@@ -15,25 +15,19 @@
  */
 package com.datatorrent.apps.logstream;
 
+import java.util.*;
+
+import org.codehaus.jettison.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultPartition;
 import com.datatorrent.api.Partitionable;
-import com.datatorrent.api.annotation.ShipContainingJars;
+
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
+import com.datatorrent.common.util.DTThrowable;
 import com.datatorrent.contrib.rabbitmq.AbstractSinglePortRabbitMQInputOperator;
-import com.datatorrent.lib.util.KeyValPair;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Envelope;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.logging.Level;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 
 /**
  *
@@ -51,7 +45,6 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     super.setup(context);
     LogstreamPropertyRegistry.setInstance(registry);
   }
-
 
   @Override
   public byte[] getTuple(byte[] message)
@@ -77,63 +70,6 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     return message;
   }
 
-  /*
-   @Override
-   public void activate(OperatorContext ctx)
-   {
-   if (routingKeys == null) {
-   super.activate(ctx);
-   }
-   else {
-   try {
-   connFactory = new ConnectionFactory();
-   connFactory.setHost(host);
-   connection = connFactory.newConnection();
-   channel = connection.createChannel();
-
-   channel.exchangeDeclare(exchange, exchangeType);
-   if (queueName == null) {
-   // unique queuename is generated
-   // used in case of fanout exchange
-   queueName = channel.queueDeclare().getQueue();
-   }
-   else {
-   // user supplied name
-   // used in case of direct exchange
-   channel.queueDeclare(queueName, true, false, false, null);
-   }
-
-   for (String rKey : routingKeys) {
-   channel.queueBind(queueName, exchange, rKey);
-   }
-
-   //      consumer = new QueueingConsumer(channel);
-   //      channel.basicConsume(queueName, true, consumer);
-   tracingConsumer = new TracingConsumer(channel);
-   cTag = channel.basicConsume(queueName, true, tracingConsumer);
-   }
-   catch (IOException ex) {
-   logger.debug(ex.toString());
-   }
-   }
-   }
-   */
-  /*
-  @Override
-  public void setup(OperatorContext context)
-  {
-    super.setup(context);
-    logstreamHoldingBuffer = new HashMap<String, ArrayBlockingQueue<byte[]>>();
-    for (String rKey : routingKeys) {
-      ArrayBlockingQueue<byte[]> buffer = new ArrayBlockingQueue<byte[]>(bufferSize);
-      logstreamHoldingBuffer.put(rKey, buffer);
-    }
-    logger.info("exchange = {}", this.getExchange());
-    logger.info("host name = {}", this.getHost());
-    logger.info("exchange type = {}", this.getExchangeType());
-  }
-  */
-
   public void addPropertiesFromString(String[] props)
   {
     //input string format
@@ -151,7 +87,6 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
         registry.bind("LOG_TYPE", rKey);
       }
     }
-    System.out.println("added properties...host = " + host + " exchange = " + exchange + " exchangeType = " + exchangeType + " queue name = " + queueName);
   }
 
   public void setRegistry(LogstreamPropertyRegistry registry)
@@ -160,23 +95,36 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   }
 
   @Override
+  protected RabbitMQLogsInputOperator clone() throws CloneNotSupportedException
+  {
+    RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
+    oper.host = RabbitMQLogsInputOperator.this.host;
+    oper.exchange = RabbitMQLogsInputOperator.this.exchange;
+    oper.exchangeType = RabbitMQLogsInputOperator.this.exchangeType;
+    oper.registry = RabbitMQLogsInputOperator.this.registry;
+    oper.routingKeys = RabbitMQLogsInputOperator.this.routingKeys;
+    oper.routingKey = RabbitMQLogsInputOperator.this.routingKey;
+    oper.queueName = RabbitMQLogsInputOperator.this.queueName;
+
+    return oper;
+  }
+
+  @Override
   public Collection<Partition<RabbitMQLogsInputOperator>> definePartitions(Collection<Partition<RabbitMQLogsInputOperator>> clctn, int i)
   {
     ArrayList<Partition<RabbitMQLogsInputOperator>> newPartitions = new ArrayList<Partition<RabbitMQLogsInputOperator>>();
     for (String rKey : routingKeys) {
-      RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
-      oper.routingKey = rKey;
-      oper.host = host;
-      oper.exchange = exchange;
-      oper.exchangeType = exchangeType;
-      oper.queueName = rKey;
-      oper.registry = registry;
-      oper.routingKeys = routingKeys;
+      try {
+        RabbitMQLogsInputOperator oper = RabbitMQLogsInputOperator.this.clone();
+        oper.routingKey = rKey;
+        oper.queueName = rKey;
 
-      Partition<RabbitMQLogsInputOperator> partition = new DefaultPartition<RabbitMQLogsInputOperator>(oper);
-
-      newPartitions.add(partition);
-      System.out.println("added new partition for logs input for routingkey " + rKey);
+        Partition<RabbitMQLogsInputOperator> partition = new DefaultPartition<RabbitMQLogsInputOperator>(oper);
+        newPartitions.add(partition);
+      }
+      catch (Throwable ex) {
+        DTThrowable.rethrow(ex);
+      }
     }
     return newPartitions;
   }

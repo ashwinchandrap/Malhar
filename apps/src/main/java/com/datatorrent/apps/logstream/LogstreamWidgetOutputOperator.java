@@ -4,22 +4,25 @@
  */
 package com.datatorrent.apps.logstream;
 
-import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.DefaultInputPort;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
-import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
-import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
-import com.datatorrent.lib.io.WidgetOutputOperator;
-import com.datatorrent.lib.logs.DimensionObject;
-import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+
 import javax.validation.constraints.NotNull;
-import org.apache.commons.lang.mutable.MutableDouble;
+
 import org.apache.commons.lang3.tuple.MutablePair;
+
+import com.datatorrent.lib.io.WidgetOutputOperator;
+import com.datatorrent.lib.logs.DimensionObject;
+
+import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DefaultInputPort;
+import com.datatorrent.api.annotation.InputPortFieldAnnotation;
+
+import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
+import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 
 /**
  *
@@ -29,7 +32,6 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
 {
   @NotNull
   private PropertyRegistry<String> registry;
-
   @InputPortFieldAnnotation(name = "logstream topN input", optional = true)
   public final transient LogstreamTopNInputPort logstreamTopNInput = new LogstreamTopNInputPort(LogstreamWidgetOutputOperator.this);
 
@@ -133,5 +135,7 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
       operator.topNTopic = topic;
       return this;
     }
+
   }
+
 }

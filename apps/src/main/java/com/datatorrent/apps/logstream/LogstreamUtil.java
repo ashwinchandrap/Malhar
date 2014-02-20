@@ -6,7 +6,6 @@ package com.datatorrent.apps.logstream;
 
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Map;
 
 /**
  *
@@ -21,6 +20,8 @@ public class LogstreamUtil
   public static final int TIMEBUCKET_WEEK = 16;
   public static final int TIMEBUCKET_MONTH = 32;
   public static final int TIMEBUCKET_YEAR = 64;
+  public static final String LOG_TYPE = "LOG_TYPE";
+  public static final String FILTER = "FILTER";
 
   public enum AggregateOperation
   {
@@ -53,7 +54,8 @@ public class LogstreamUtil
     return new Long(0);
   }
 
-  public static int extractTimeBucket(String bucket) {
+  public static int extractTimeBucket(String bucket)
+  {
     int timeBucket = 0;
     if (bucket.equals("s")) {
       timeBucket = TIMEBUCKET_SECOND;
@@ -80,7 +82,5 @@ public class LogstreamUtil
     return timeBucket;
 
   }
-
-
 
 }
