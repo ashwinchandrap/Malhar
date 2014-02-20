@@ -66,17 +66,23 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
         HashMap<String, Object> schemaObj = new HashMap<String, Object>();
 
         String[] keyInfo = keyString.split("\\|");
-        HashMap<String, String> appMeta = new HashMap<String, String>();
-        appMeta.put("timeBucket", keyInfo[0]);
+        HashMap<String, String> tupleMeta = new HashMap<String, String>();
+        tupleMeta.put("timeBucket", keyInfo[0]);
         //appMeta.put("timeStamp", key[1]);
-        appMeta.put("logType", registry.lookupValue(new Integer(keyInfo[2])));
-        appMeta.put("filter", registry.lookupValue(new Integer(keyInfo[3])));
-        appMeta.put("dimension", registry.lookupValue(new Integer(keyInfo[4])));
+        tupleMeta.put("logType", registry.lookupValue(new Integer(keyInfo[2])));
+        tupleMeta.put("filter", registry.lookupValue(new Integer(keyInfo[3])));
+        tupleMeta.put("dimension", registry.lookupValue(new Integer(keyInfo[4])));
         String[] val = keyInfo[5].split("\\.");
-        appMeta.put("value", val[0]);
-        appMeta.put("operation", val[1]);
+        tupleMeta.put("value", val[0]);
+        tupleMeta.put("operation", val[1]);
 
-        schemaObj.put("TupleMeta", appMeta);
+        schemaObj.put("tupleMeta", tupleMeta);
+
+        String keyTitle = tupleMeta.get("dimension");
+        String valueTitle = tupleMeta.get("operation") + "(" + tupleMeta.get("value") + ")";
+
+        schemaObj.put("keyTitle", keyTitle);
+        schemaObj.put("valueTitle", valueTitle);
 
         String topic = keyInfo[0] + "|" + keyInfo[2] + "|" + keyInfo[3] + "|" + keyInfo[4] + "|" + keyInfo[5];
 
@@ -127,8 +133,5 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
       operator.topNTopic = topic;
       return this;
     }
-
   }
-
-
 }
