@@ -32,6 +32,7 @@ import com.datatorrent.contrib.rabbitmq.AbstractSinglePortRabbitMQInputOperator;
 /**
  *
  * Input operator to consume logs messages from RabbitMQ
+ * This operator is partitionable, each partition will receive messages from the routing key its assigned.
  */
 public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOperator<byte[]> implements Partitionable<RabbitMQLogsInputOperator>
 {
@@ -70,6 +71,12 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     return message;
   }
 
+  /**
+   * Supply the properties to the operator.
+   * The properties include hostname, exchange, exchangeType, queueName and colon separated routing keys specified in the following format
+   * hostName, exchange, exchangeType, queueName, routingKey1[:routingKey2]
+   * @param props
+   */
   public void addPropertiesFromString(String[] props)
   {
     //input string format
@@ -89,6 +96,10 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     }
   }
 
+  /**
+   * supply the registry object which is used to store and retrieve meta information about each tuple
+   * @param registry
+   */
   public void setRegistry(LogstreamPropertyRegistry registry)
   {
     this.registry = registry;
@@ -109,6 +120,13 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     return oper;
   }
 
+  /**
+   * Partitions count will be the number of input routing keys.
+   * Each partition receives tuples from its routing key.
+   * @param clctn
+   * @param i
+   * @return
+   */
   @Override
   public Collection<Partition<RabbitMQLogsInputOperator>> definePartitions(Collection<Partition<RabbitMQLogsInputOperator>> clctn, int i)
   {

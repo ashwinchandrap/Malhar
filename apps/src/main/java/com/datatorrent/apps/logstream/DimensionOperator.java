@@ -1,6 +1,17 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream;
 
@@ -31,10 +42,13 @@ import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
+import com.datatorrent.common.util.DTThrowable;
+import javax.validation.ValidationException;
 
 /**
- *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Partitionable dimension operator.
+ * Computes specified operators on specified values for specified dimension combinations.
+ * Each partition works on a filtered tuple of a log type.
  */
 public class DimensionOperator extends BaseOperator implements Partitionable<DimensionOperator>
 {
@@ -54,7 +68,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   private transient boolean firstTuple = true;
   private ArrayList<Integer> dimensionCombinations;
   private HashMap<String, HashSet<AggregateOperation>> valueOperationTypes;
-  List<String> outTimeBuckets;
+  List<String> outTimeBuckets; // represents the list of timebuckets to be emitted when the time bucket changes
 
   @Override
   public void setup(OperatorContext context)
@@ -99,6 +113,11 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   };
 
+  /**
+   * Does dimensional computations for each incoming tuple and populates the cache with the computations
+   *
+   * @param tuple
+   */
   protected void processTuple(Map<String, Object> tuple)
   {
     long time;
@@ -173,6 +192,12 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     }
   }
 
+  /**
+   * returns list of time buckets for the given timestamp
+   *
+   * @param time
+   * @return
+   */
   protected List<String> getTimeBucketList(long time)
   {
 
@@ -205,6 +230,15 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     return timeBucketList;
   }
 
+  /**
+   * Does computations for the given dimension and its value names on the given value key name
+   *
+   * @param timeBucket time bucket
+   * @param dimensionCombinationId id of dimension combination
+   * @param dimValueName values of the dimension combination
+   * @param valueKeyName name of the value key on which operations are performed
+   * @param value value of the value key
+   */
   private void doComputations(String timeBucket, Integer dimensionCombinationId, String dimValueName, String valueKeyName, Number value)
   {
     StringBuilder sb = new StringBuilder();
@@ -275,8 +309,10 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
     long time = LogstreamUtil.extractTime(currentWindowId, windowWidth);
 
+    // get time buckets for current window id
     List<String> timeBucketList = DimensionOperator.this.getTimeBucketList(time);
 
+    // get list of timebuckets to be emitted and replace them in outTimeBuckets with next time bucket to be emitted
     ArrayList<String> emitTimeBucketList = new ArrayList<String>();
     for (int i = 0; i < timeBucketList.size(); i++) {
       String timeBucket = timeBucketList.get(i);
@@ -286,6 +322,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
       }
     }
 
+    // emit the computations for each time bucket in emitTimeBucketList and remove those buckets from the cache since they are now already processed
     if (!emitTimeBucketList.isEmpty()) {
       ArrayList<String> obsoleteKeys = new ArrayList<String>();
       for (String outTimeStr : emitTimeBucketList) {
@@ -327,81 +364,109 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     }
   }
 
+  /**
+   * supply the registry object which is used to store and retrieve meta information about each tuple
+   *
+   * @param registry
+   */
   public void setRegistry(PropertyRegistry<String> registry)
   {
     DimensionOperator.this.registry = registry;
   }
 
-  public void setDimensionsFromString(String[] dimensionInputString)
+  /**
+   * Supply the properties to the operator.
+   * The properties include type, timebucket, dimensioncombinations, values and operations on them
+   * Input includes following properties:
+   * type=logtype // input logtype for which the properties are to be set
+   * timebucket= time bucket character //time bucket can be one of the following values s(for second)/m(for minute)/h(for hour)/D(for day)/W(for week)/M(for month)/Y(for year)
+   * dimensions=a:b:c //colon separated dimension combination combination for which computations are expected
+   * values=value.operation[:value.operation] //list of dot concatenated value name and operation separated by colon
+   * eg: type=apache,timebucket=m,timebucket=h,dimensions=a:b:c,dimensions=b:c,dimensions=b,dimensions=d,values=x.sum:y.sum:y.avg
+   *
+   * @param properties
+   */
+  public void addPropertiesFromString(String[] properties)
   {
-    ArrayList<Integer> dimCombinations = new ArrayList<Integer>();
-    HashMap<String, HashSet<AggregateOperation>> valOpTypes = new HashMap<String, HashSet<AggregateOperation>>();
-    String type = null;
-    // user input example::
-    // type=apache,timebucket=m,timebucket=h,a:b:c,b:c,b,d,values=x.sum:y.sum:y.avg
-    for (String inputs : dimensionInputString) {
-      String[] split = inputs.split("=", 2);
-      if (split[0].toLowerCase().equals("timebucket")) {
+    try {
+      ArrayList<Integer> dimCombinations = new ArrayList<Integer>();
+      HashMap<String, HashSet<AggregateOperation>> valOpTypes = new HashMap<String, HashSet<AggregateOperation>>();
+      String type = null;
+      // user input example::
+      // type=apache,timebucket=m,timebucket=h,dimensions=a:b:c,dimensions=b:c,dimensions=b,dimensions=d,values=x.sum:y.sum:y.avg
+      for (String inputs : properties) {
+        String[] split = inputs.split("=", 2);
+        if (split[0].toLowerCase().equals("timebucket")) {
 
-        int timeBucket = LogstreamUtil.extractTimeBucket(split[1]);
-        if (timeBucket == 0) {
-          logger.error("invalid time bucket", split[1]);
+          int timeBucket = LogstreamUtil.extractTimeBucket(split[1]);
+          if (timeBucket == 0) {
+            logger.error("invalid time bucket", split[1]);
+          }
+          timeBucketFlags |= timeBucket;
         }
-        timeBucketFlags |= timeBucket;
-      }
-      else if (split[0].toLowerCase().equals("values")) {
-        String[] values = split[1].split(":");
-        for (String value : values) {
-          String[] valueNames = value.split("\\.");
-          logger.info("value = {}, value after split = {}", value, Arrays.toString(valueNames));
-          String valueName = valueNames[0];
-          String valueType = valueNames[1];
-          if (valueType.toLowerCase().equals("sum")) {
-            if (valOpTypes.containsKey(valueName)) {
-              valOpTypes.get(valueName).add(AggregateOperation.SUM);
+        else if (split[0].toLowerCase().equals("values")) {
+          String[] values = split[1].split(":");
+          for (String value : values) {
+            String[] valueNames = value.split("\\.");
+            logger.info("value = {}, value after split = {}", value, Arrays.toString(valueNames));
+            String valueName = valueNames[0];
+            String valueType = valueNames[1];
+            if (valueType.toLowerCase().equals("sum")) {
+              if (valOpTypes.containsKey(valueName)) {
+                valOpTypes.get(valueName).add(AggregateOperation.SUM);
+              }
+              else {
+                HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
+                valueTypeList.add(AggregateOperation.SUM);
+                valOpTypes.put(valueName, valueTypeList);
+              }
             }
-            else {
-              HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
-              valueTypeList.add(AggregateOperation.SUM);
-              valOpTypes.put(valueName, valueTypeList);
+            else if (valueType.equals("avg") || valueType.equals("average")) {
+              if (valOpTypes.containsKey(valueName)) {
+                valOpTypes.get(valueName).add(AggregateOperation.AVERAGE);
+                valOpTypes.get(valueName).add(AggregateOperation.COUNT);
+              }
+              else {
+                HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
+                valueTypeList.add(AggregateOperation.AVERAGE);
+                valueTypeList.add(AggregateOperation.COUNT);
+                valOpTypes.put(valueName, valueTypeList);
+              }
             }
-          }
-          else if (valueType.equals("avg") || valueType.equals("average")) {
-            if (valOpTypes.containsKey(valueName)) {
-              valOpTypes.get(valueName).add(AggregateOperation.AVERAGE);
-              valOpTypes.get(valueName).add(AggregateOperation.COUNT);
-            }
-            else {
-              HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
-              valueTypeList.add(AggregateOperation.AVERAGE);
-              valueTypeList.add(AggregateOperation.COUNT);
-              valOpTypes.put(valueName, valueTypeList);
-            }
-          }
-          else if (valueType.equals("count")) {
-            if (valOpTypes.containsKey(valueName)) {
-              valOpTypes.get(valueName).add(AggregateOperation.COUNT);
-            }
-            else {
-              HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
-              valueTypeList.add(AggregateOperation.COUNT);
-              valOpTypes.put(valueName, valueTypeList);
+            else if (valueType.equals("count")) {
+              if (valOpTypes.containsKey(valueName)) {
+                valOpTypes.get(valueName).add(AggregateOperation.COUNT);
+              }
+              else {
+                HashSet<AggregateOperation> valueTypeList = new HashSet<AggregateOperation>();
+                valueTypeList.add(AggregateOperation.COUNT);
+                valOpTypes.put(valueName, valueTypeList);
+              }
             }
           }
         }
+        else if (split[0].toLowerCase().equals("type")) {
+          type = split[1];
+        }
+        else if (split[0].toLowerCase().equals("dimensions")) {
+          // dimensions
+          String dimensions = split[1];
+          int dim = registry.bind("DIMENSION", dimensions);
+          dimCombinations.add(dim);
+        }
+        else {
+          throw new ValidationException("Invalid input property string " + Arrays.toString(properties));
+        }
       }
-      else if (split[0].toLowerCase().equals("type")) {
-        type = split[1];
-      }
-      else {
-        // dimensions
-        int dim = registry.bind("DIMENSION", inputs);
-        dimCombinations.add(dim);
-      }
+
+      dimensionCombinationList.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), dimCombinations);
+      valueOperations.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), valOpTypes);
+
     }
-
-    dimensionCombinationList.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), dimCombinations);
-    valueOperations.put(registry.getIndex(LogstreamUtil.LOG_TYPE, type), valOpTypes);
+    catch (Exception e) {
+      logger.error("Dimension Validation", e);
+      System.exit(0);
+    }
   }
 
   @Override
@@ -465,11 +530,19 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     return newPartitions;
   }
 
+  /**
+   * Time key for dimension computations, if not provided then window timestamp is used
+   * @param timeKeyName
+   */
   public void setTimeKeyName(String timeKeyName)
   {
     this.timeKeyName = timeKeyName;
   }
 
+  /**
+   * extracts the meta information about the tuple
+   * @param tuple
+   */
   private void extractType(Map<String, Object> tuple)
   {
     recordType.put(LogstreamUtil.LOG_TYPE, (Number)tuple.get(LogstreamUtil.LOG_TYPE));

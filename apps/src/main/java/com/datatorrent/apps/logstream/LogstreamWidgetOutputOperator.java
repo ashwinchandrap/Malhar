@@ -1,6 +1,17 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream;
 
@@ -25,8 +36,8 @@ import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 
 /**
+ * Output operator to send outputs to websocket to display on UI widgets.
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
 public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
 {
@@ -35,6 +46,11 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
   @InputPortFieldAnnotation(name = "logstream topN input", optional = true)
   public final transient LogstreamTopNInputPort logstreamTopNInput = new LogstreamTopNInputPort(LogstreamWidgetOutputOperator.this);
 
+  /**
+   * supply the registry object which is used to store and retrieve meta information about each tuple
+   *
+   * @param registry
+   */
   public void setRegistry(PropertyRegistry<String> registry)
   {
     this.registry = registry;
@@ -47,6 +63,9 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
     LogstreamPropertyRegistry.setInstance(registry);
   }
 
+  /**
+   * Creates the widget output object from input tuple, populates all the meta information and sends to websocket
+   */
   public class LogstreamTopNInputPort extends DefaultInputPort<HashMap<String, ArrayList<DimensionObject<String>>>>
   {
     NumberFormat formatter = new DecimalFormat("#0.00");

@@ -1,6 +1,17 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream.PropertyRegistry;
 
@@ -9,10 +20,9 @@ import java.util.HashMap;
 
 import org.slf4j.LoggerFactory;
 
-
 /**
- *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Logstream implementation of property registry
+ * Properties are added to the registry during dag setup and are accessible to all operators.
  */
 public class LogstreamPropertyRegistry implements PropertyRegistry<String>
 {
@@ -25,7 +35,6 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public synchronized int bind(String name, String value)
   {
-    System.out.println("binding.. name = " + name + " value = " + value);
     ArrayList<String> values = null;
     int nameIndex = nameList.indexOf(name);
     int valueIndex;
@@ -54,10 +63,7 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
     int index = nameIndex << 16 | valueIndex;
 
     indexMap.put(name + "_" + value, index);
-    System.out.println("name value = " + name + "_" + value);
-    System.out.println("name index = " + nameIndex);
-    System.out.println("value index = " + valueIndex);
-    System.out.println("index = " + index);
+    logger.debug("name = {} value = {} name index = {} value index = {} pair index = {}", name, value, nameIndex, valueIndex, index);
 
     return index;
   }
@@ -65,8 +71,8 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public String lookupValue(int index)
   {
-    int nameIndex = index >> 16;
-    int valueIndex = (-1 >>> -16) & index;
+    int nameIndex = index >> 16; // moves first 16 bits to last 16 bits
+    int valueIndex = 0xffff & index; // clears out first 16 bits
     ArrayList<String> values = valueList.get(nameIndex);
     String value = values.get(valueIndex);
 
@@ -76,10 +82,7 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
   @Override
   public String[] list(String name)
   {
-    //System.out.println("## registry list: name = " + name);
     int nameIndex = nameList.indexOf(name);
-
-    //System.out.println("## registry list: nameIndex = " + nameIndex);
 
     if (nameIndex < 0) {
       return new String[0];
@@ -87,10 +90,7 @@ public class LogstreamPropertyRegistry implements PropertyRegistry<String>
 
     ArrayList<String> values = valueList.get(nameIndex);
 
-    //System.out.println("## registry list: list = " + values);
-
     return values.toArray(new String[values.size()]);
-
   }
 
   @Override

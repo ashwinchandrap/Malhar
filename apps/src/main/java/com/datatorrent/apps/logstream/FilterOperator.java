@@ -1,16 +1,23 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream;
 
 /**
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
- */
-/*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
  */
 import java.util.*;
 import java.util.HashMap;
@@ -31,7 +38,7 @@ import com.datatorrent.common.util.DTThrowable;
 
 /**
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Filters an input tuple and emits a filter stamped tuple for each satisfied filter
  */
 @ShipContainingJars(classes = {org.codehaus.janino.ExpressionEvaluator.class})
 public class FilterOperator extends BaseOperator
@@ -47,6 +54,11 @@ public class FilterOperator extends BaseOperator
   private transient HashMap<String, ExpressionEvaluator> evaluators = new HashMap<String, ExpressionEvaluator>();
   private PropertyRegistry<String> registry;
 
+  /**
+   * supply the registry object which is used to store and retrieve meta information about each tuple
+   *
+   * @param registry
+   */
   public void setRegistry(PropertyRegistry<String> registry)
   {
     FilterOperator.this.registry = registry;
@@ -128,31 +140,46 @@ public class FilterOperator extends BaseOperator
 
   };
 
-  public void addFilterCondition(String[] condition)
+  /**
+   * Supply the properties to the operator.
+   * Input includes following properties:
+   * type=logtype // input logtype for which the properties are to be set
+   * followed by list of keys followed by the filter expression
+   * eg: type=apache, response, response.equals("404")
+   *
+   * if default filter is needed i.e. emit a tuple with no filter applied on it
+   * Input includes following properties:
+   * type=logtype // input logtype for which the properties are to be set
+   * followed by the following default condition
+   * default=true
+   * eg: type=apache, default=true
+   * @param properties
+   */
+  public void addFilterCondition(String[] properties)
   {
     // TODO: validations
-    if (condition.length == 2) {
-      logger.info(Arrays.toString(condition));
-      String[] split = condition[0].split("=");
+    if (properties.length == 2) {
+      logger.info(Arrays.toString(properties));
+      String[] split = properties[0].split("=");
       String type = split[1];
-      String[] split1 = condition[1].split("=");
+      String[] split1 = properties[1].split("=");
       if (split1[1].toLowerCase().equals("true")) {
         registry.bind(LogstreamUtil.FILTER, type + "_" + "DEFAULT");
       }
 
     }
-    else if (condition.length == 3) {
-      String[] split = condition[0].split("=");
+    else if (properties.length == 3) {
+      String[] split = properties[0].split("=");
       String type = split[1];
       int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, type);
-      String[] keys = new String[condition.length - 2];
+      String[] keys = new String[properties.length - 2];
 
-      System.arraycopy(condition, 1, keys, 0, keys.length);
+      System.arraycopy(properties, 1, keys, 0, keys.length);
 
       for (String string : keys) {
         System.out.println("condition keys = " + string);
       }
-      String expression = condition[condition.length - 1];
+      String expression = properties[properties.length - 1];
 
       Map<String, String[]> conditions = conditionList.get(typeId);
       if (conditions == null) {

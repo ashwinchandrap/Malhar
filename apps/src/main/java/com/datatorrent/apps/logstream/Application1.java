@@ -1,6 +1,17 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream;
 
@@ -45,13 +56,13 @@ public class Application1 implements StreamingApplication
 
     DimensionOperator dimensionOperator = dag.addOperator("DimensionOperator", new DimensionOperator());
     dimensionOperator.setRegistry(registry);
-    //String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=m", "request", "clientip", "clientip:request", "values=bytes.sum:bytes.avg"};
-    String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=s", "request", "clientip","values=bytes.sum"};
+    //String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=m", "dimensions=request", "dimensions=clientip", "dimensions=clientip:request", "values=bytes.sum:bytes.avg"};
+    String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=s", "dimensions=request", "dimensions=clientip","values=bytes.sum"};
     //String[] dimensionInputString2 = new String[] {"type=system", "timebucket=m", "disk", "values=writes.avg"};
     //String[] dimensionInputString3 = new String[] {"type=syslog", "timebucket=s", "program", "values=pid.count"};
-    dimensionOperator.setDimensionsFromString(dimensionInputString1);
-    //dimensionOperator.setDimensionsFromString(dimensionInputString2);
-    //dimensionOperator.setDimensionsFromString(dimensionInputString3);
+    dimensionOperator.addPropertiesFromString(dimensionInputString1);
+    //dimensionOperator.addPropertiesFromString(dimensionInputString2);
+    //dimensionOperator.addPropertiesFromString(dimensionInputString3);
 
     LogstreamTopN topN = dag.addOperator("TopN", new LogstreamTopN());
     topN.setN(topNtupleCount);
