@@ -19,7 +19,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,7 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
+import com.datatorrent.common.util.DTThrowable;
 
 /**
  * Takes a json byte stream and emits a HashMap of key values
@@ -102,34 +102,31 @@ public class JsonByteArrayOperator extends BaseOperator
         }
 
       }
-      catch (JSONException ex) {
-        logger.error(ex.getMessage());
-      }
-      catch (Exception ex) {
-        logger.error(ex.getMessage());
+      catch (Throwable ex) {
+        DTThrowable.rethrow(ex);
       }
     }
+
   };
 
-  public void setConcatenationCharacter(char c) {
+  public void setConcatenationCharacter(char c)
+  {
     JsonByteArrayOperator.this.CONCAT_CHAR = c;
   }
+
   /**
    * Output hash map port.
    */
   @OutputPortFieldAnnotation(name = "map")
   public final transient DefaultOutputPort<HashMap<String, Object>> outputMap = new DefaultOutputPort<HashMap<String, Object>>();
-
   /**
    * Output JSONObject port.
    */
   @OutputPortFieldAnnotation(name = "jsonobject")
   public final transient DefaultOutputPort<JSONObject> outputJsonObject = new DefaultOutputPort<JSONObject>();
-
   /**
    * Output hash map port.
    */
   @OutputPortFieldAnnotation(name = "flatmap")
   public final transient DefaultOutputPort<HashMap<String, Object>> outputFlatMap = new DefaultOutputPort<HashMap<String, Object>>();
-
 }

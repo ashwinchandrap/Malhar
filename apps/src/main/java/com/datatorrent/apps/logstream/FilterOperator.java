@@ -23,6 +23,8 @@ import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.validation.ValidationException;
+
 import org.codehaus.janino.ExpressionEvaluator;
 import org.slf4j.LoggerFactory;
 
@@ -153,48 +155,52 @@ public class FilterOperator extends BaseOperator
    * followed by the following default condition
    * default=true
    * eg: type=apache, default=true
+   *
    * @param properties
    */
   public void addFilterCondition(String[] properties)
   {
-    // TODO: validations
-    if (properties.length == 2) {
-      logger.info(Arrays.toString(properties));
-      String[] split = properties[0].split("=");
-      String type = split[1];
-      String[] split1 = properties[1].split("=");
-      if (split1[1].toLowerCase().equals("true")) {
-        registry.bind(LogstreamUtil.FILTER, type + "_" + "DEFAULT");
+    try {
+      // TODO: validations
+      if (properties.length == 2) {
+        logger.info(Arrays.toString(properties));
+        String[] split = properties[0].split("=");
+        String type = split[1];
+        String[] split1 = properties[1].split("=");
+        if (split1[1].toLowerCase().equals("true")) {
+          registry.bind(LogstreamUtil.FILTER, type + "_" + "DEFAULT");
+        }
       }
+      else if (properties.length > 2) {
+        String[] split = properties[0].split("=");
+        String type = split[1];
+        int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, type);
+        String[] keys = new String[properties.length - 2];
 
+        System.arraycopy(properties, 1, keys, 0, keys.length);
+
+        String expression = properties[properties.length - 1];
+
+        Map<String, String[]> conditions = conditionList.get(typeId);
+        if (conditions == null) {
+          conditions = new HashMap<String, String[]>();
+          conditionList.put(typeId, conditions);
+        }
+
+        conditions.put(expression, keys);
+        if (registry != null) {
+          registry.bind(LogstreamUtil.FILTER, expression);
+        }
+      }
+      else {
+        throw new ValidationException("Invalid input property string " + Arrays.toString(properties));
+      }
     }
-    else if (properties.length == 3) {
-      String[] split = properties[0].split("=");
-      String type = split[1];
-      int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, type);
-      String[] keys = new String[properties.length - 2];
-
-      System.arraycopy(properties, 1, keys, 0, keys.length);
-
-      for (String string : keys) {
-        System.out.println("condition keys = " + string);
-      }
-      String expression = properties[properties.length - 1];
-
-      Map<String, String[]> conditions = conditionList.get(typeId);
-      if (conditions == null) {
-        conditions = new HashMap<String, String[]>();
-        conditionList.put(typeId, conditions);
-      }
-
-      conditions.put(expression, keys);
-      if (registry != null) {
-        registry.bind(LogstreamUtil.FILTER, expression);
-      }
+    catch (Exception ex) {
+      logger.error("input properties validation", ex);
+      System.exit(0);
     }
-    else {
-      //THROW ERROR
-    }
+
   }
 
   @OutputPortFieldAnnotation(name = "outputMap")

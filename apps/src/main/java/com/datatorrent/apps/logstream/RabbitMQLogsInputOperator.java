@@ -59,13 +59,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
       message = outputString.getBytes();
     }
     catch (Throwable ex) {
-      if (ex instanceof Error) {
-        throw (Error)ex;
-      }
-      if (ex instanceof RuntimeException) {
-        throw (RuntimeException)ex;
-      }
-      throw new RuntimeException(ex);
+      DTThrowable.rethrow(ex);
     }
 
     return message;
@@ -75,29 +69,36 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
    * Supply the properties to the operator.
    * The properties include hostname, exchange, exchangeType, queueName and colon separated routing keys specified in the following format
    * hostName, exchange, exchangeType, queueName, routingKey1[:routingKey2]
+   *
    * @param props
    */
   public void addPropertiesFromString(String[] props)
   {
-    //input string format
-    //host, exchange, exchangeType, queueName, routingKey1:routingKey2:routingKey3
-    //eg: localhost, logstash, direct, logs, apache:mysql:syslog
+    try {
+      //input string format
+      //host, exchange, exchangeType, queueName, routingKey1:routingKey2:routingKey3
+      //eg: localhost, logstash, direct, logs, apache:mysql:syslog
+      host = props[0];
+      exchange = props[1];
+      exchangeType = props[2];
+      queueName = props[3];
 
-    host = props[0];
-    exchange = props[1];
-    exchangeType = props[2];
-    queueName = props[3];
-
-    if (props[4] != null) {
-      RabbitMQLogsInputOperator.this.routingKeys = props[4].split(":");
-      for (String rKey : routingKeys) {
-        registry.bind(LogstreamUtil.LOG_TYPE, rKey);
+      if (props[4] != null) {
+        RabbitMQLogsInputOperator.this.routingKeys = props[4].split(":");
+        for (String rKey : routingKeys) {
+          registry.bind(LogstreamUtil.LOG_TYPE, rKey);
+        }
       }
+    }
+    catch (Exception ex) {
+      logger.error("input properties validation", ex);
+      System.exit(0);
     }
   }
 
   /**
    * supply the registry object which is used to store and retrieve meta information about each tuple
+   *
    * @param registry
    */
   public void setRegistry(LogstreamPropertyRegistry registry)
@@ -123,6 +124,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   /**
    * Partitions count will be the number of input routing keys.
    * Each partition receives tuples from its routing key.
+   *
    * @param clctn
    * @param i
    * @return

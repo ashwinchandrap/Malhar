@@ -37,6 +37,7 @@ import com.datatorrent.api.StreamCodec;
 
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
+import com.datatorrent.common.util.DTThrowable;
 
 /**
  *
@@ -134,8 +135,8 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
         Partition<LogstreamTopN> partition = new DefaultPartition<LogstreamTopN>(logstreamTopN);
         newPartitions.add(partition);
       }
-      catch (CloneNotSupportedException ex) {
-        java.util.logging.Logger.getLogger(DimensionOperator.class.getName()).log(Level.SEVERE, null, ex);
+      catch (Throwable ex) {
+        DTThrowable.rethrow(ex);
       }
     }
 

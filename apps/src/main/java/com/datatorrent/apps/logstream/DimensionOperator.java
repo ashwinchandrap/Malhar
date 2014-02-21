@@ -17,8 +17,8 @@ package com.datatorrent.apps.logstream;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 
+import javax.validation.ValidationException;
 import javax.validation.constraints.NotNull;
 
 import com.google.common.collect.Sets;
@@ -43,7 +43,6 @@ import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
 import com.datatorrent.common.util.DTThrowable;
-import javax.validation.ValidationException;
 
 /**
  * Partitionable dimension operator.
@@ -464,7 +463,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
     }
     catch (Exception e) {
-      logger.error("Dimension Validation", e);
+      logger.error("input properties validation", e);
       System.exit(0);
     }
   }
@@ -503,8 +502,8 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
         Partition<DimensionOperator> partition = new DefaultPartition<DimensionOperator>(dimensionOperator);
         newPartitions.add(partition);
       }
-      catch (CloneNotSupportedException ex) {
-        java.util.logging.Logger.getLogger(DimensionOperator.class.getName()).log(Level.SEVERE, null, ex);
+      catch (Throwable ex) {
+        DTThrowable.rethrow(ex);
       }
     }
 
@@ -532,6 +531,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   /**
    * Time key for dimension computations, if not provided then window timestamp is used
+   *
    * @param timeKeyName
    */
   public void setTimeKeyName(String timeKeyName)
@@ -541,6 +541,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
   /**
    * extracts the meta information about the tuple
+   *
    * @param tuple
    */
   private void extractType(Map<String, Object> tuple)
