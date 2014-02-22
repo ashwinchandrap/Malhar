@@ -26,7 +26,7 @@ public class DimensionOperatorTest
     oper.setRegistry(registry);
     // user input example::
     // type=apache,timebucket=m,timebucket=h,a:b:c,b:c,b,d,values=x.sum:y.sum:y.avg
-    oper.setDimensionsFromString(new String[] {"type=apache", "timebucket=m", "name", "url", "name:url","values=value.sum:value.avg"});
+    oper.addPropertiesFromString(new String[] {"type=apache", "timebucket=m", "name", "url", "name:url","values=value.sum:value.avg"});
 
     HashMap<String, Object> inMap1 = new HashMap<String, Object>();
     inMap1.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
