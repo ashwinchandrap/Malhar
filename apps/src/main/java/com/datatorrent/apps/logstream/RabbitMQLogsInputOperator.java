@@ -68,7 +68,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   /**
    * Supply the properties to the operator.
    * The properties include hostname, exchange, exchangeType, queueName and colon separated routing keys specified in the following format
-   * hostName, exchange, exchangeType, queueName, routingKey1[:routingKey2]
+   * hostName[:port], exchange, exchangeType, queueName, routingKey1[:routingKey2]
    *
    * @param props
    */
@@ -77,8 +77,15 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     try {
       //input string format
       //host, exchange, exchangeType, queueName, routingKey1:routingKey2:routingKey3
-      //eg: localhost, logstash, direct, logs, apache:mysql:syslog
-      host = props[0];
+      //eg: localhost:5672, logstash, direct, logs, apache:mysql:syslog
+      if (props[0].contains(":")){
+        String[] split = props[0].split(":");
+        host = split[0];
+        port = new Integer(split[1]);
+      } else {
+        host = props[0];
+      }
+
       exchange = props[1];
       exchangeType = props[2];
       queueName = props[3];
@@ -111,6 +118,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   {
     RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
     oper.host = RabbitMQLogsInputOperator.this.host;
+    oper.port = RabbitMQLogsInputOperator.this.port;
     oper.exchange = RabbitMQLogsInputOperator.this.exchange;
     oper.exchangeType = RabbitMQLogsInputOperator.this.exchangeType;
     oper.registry = RabbitMQLogsInputOperator.this.registry;

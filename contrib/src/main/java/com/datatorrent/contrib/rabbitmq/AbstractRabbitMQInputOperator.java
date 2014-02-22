@@ -68,6 +68,7 @@ ActivationListener<OperatorContext>
   private static final Logger logger = LoggerFactory.getLogger(AbstractRabbitMQInputOperator.class);
   @NotNull
   protected String host;
+  protected int port;
   @NotNull
   protected String exchange;
   @NotNull
@@ -169,6 +170,7 @@ ActivationListener<OperatorContext>
     try {
       connFactory = new ConnectionFactory();
       connFactory.setHost(host);
+      connFactory.setPort(port);
       connection = connFactory.newConnection();
       channel = connection.createChannel();
 
@@ -219,6 +221,16 @@ ActivationListener<OperatorContext>
   public void setHost(String host)
   {
     this.host = host;
+  }
+
+  public int getPort()
+  {
+    return port;
+  }
+
+  public void setPort(int port)
+  {
+    this.port = port;
   }
 
   public String getExchange()
