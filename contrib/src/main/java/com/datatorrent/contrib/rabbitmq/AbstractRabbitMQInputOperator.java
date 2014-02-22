@@ -191,7 +191,7 @@ ActivationListener<OperatorContext>
       cTag = channel.basicConsume(queueName, true, tracingConsumer);
     }
     catch (IOException ex) {
-      logger.debug(ex.toString());
+      logger.error("Something wrong while setting up connection", ex);
     }
   }
 
