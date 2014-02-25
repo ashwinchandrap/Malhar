@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.api.LocalMode;
+import org.junit.Ignore;
 
 /**
  *
@@ -28,6 +29,7 @@ import com.datatorrent.api.LocalMode;
 public class Application1Test
 {
   @Test
+  @Ignore
   public void testSomeMethod() throws Exception
   {
     Configuration conf = new Configuration(false);

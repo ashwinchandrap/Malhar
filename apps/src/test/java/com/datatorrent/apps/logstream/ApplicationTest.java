@@ -17,6 +17,7 @@ package com.datatorrent.apps.logstream;
 
 import com.datatorrent.api.LocalMode;
 import com.datatorrent.apps.logstream.Application;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -25,6 +26,7 @@ import org.junit.Test;
 public class ApplicationTest
 {
   @Test
+  @Ignore
   public void testSomeMethod() throws Exception
   {
     LocalMode.runApp(new Application(), 60000);
