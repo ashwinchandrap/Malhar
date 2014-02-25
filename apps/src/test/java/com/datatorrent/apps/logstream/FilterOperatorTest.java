@@ -9,10 +9,12 @@ import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.lib.testbench.CollectorTestSink;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.validation.constraints.AssertTrue;
+import junit.framework.Assert;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
@@ -22,106 +24,63 @@ import org.junit.Test;
  */
 public class FilterOperatorTest
 {
-  public static class TestApplication implements StreamingApplication
-  {
-    @Override
-    public void populateDAG(DAG dag, Configuration c)
-    {
-      LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
-      registry.bind("LOG_TYPE", "apache");
-
-      TestInputOperator inputOperator = dag.addOperator("InputOperator", new TestInputOperator());
-      inputOperator.setRegistry(registry);
-
-      FilterOperator filterOperator = dag.addOperator("FilterOperator", new FilterOperator());
-      filterOperator.setRegistry(registry);
-      String val = "404";
-      filterOperator.addFilterCondition(new String[] {"type=apache", "response", "response.equals(\"404\")"});
-      filterOperator.addFilterCondition(new String[] {"type=apache", "default=true"});
-
-      TestOutputOperator outputOperator = dag.addOperator("OutputOperator", new TestOutputOperator());
-
-      dag.addStream("input", inputOperator.outMap, filterOperator.input);
-      dag.addStream("filter", filterOperator.outputMap, outputOperator.input);
-    }
-
-  }
-
-  public static class TestInputOperator extends BaseOperator implements InputOperator
-  {
-    private HashMap<String, Object> map;
-    private LogstreamPropertyRegistry registry;
-
-    public void setRegistry(LogstreamPropertyRegistry registry)
-    {
-      this.registry = registry;
-    }
-
-    @OutputPortFieldAnnotation(name = "outMap")
-    public final transient DefaultOutputPort<HashMap<String, Object>> outMap = new DefaultOutputPort<HashMap<String, Object>>();
-
-    @Override
-    public void emitTuples()
-    {
-      map = new HashMap<String, Object>();
-      map.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-      String val = new String("404");
-      map.put("response", val);
-      outMap.emit(map);
-    }
-
-  }
-
-  public static class TestOutputOperator extends BaseOperator
-  {
-    @InputPortFieldAnnotation(name = "input")
-    public final transient DefaultInputPort<Map<String, Object>> input = new DefaultInputPort<Map<String, Object>>()
-    {
-      @Override
-      public void process(Map<String, Object> t)
-      {
-        System.out.println("tuple received ## " + t);
-      }
-
-    };
-  }
-
   @Test
+  @SuppressWarnings("unchecked")
   public void testOperator()
   {
-    LocalMode.runApp(new TestApplication(), 60000);
+    FilterOperator oper = new FilterOperator();
+    LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
+    registry.bind(LogstreamUtil.LOG_TYPE, "apache");
+    oper.setRegistry(registry);
+    oper.setup(null);
 
-    /*
-     FilterOperator oper = new FilterOperator();
-     LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
-     registry.bind("LOG_TYPE", "apache");
-     oper.setRegistry(registry);
-     oper.setup(null);
+    String filter1 = "a==\"1\"&&b==\"2\"&&c_info==\"abc\"";
+    oper.addFilterCondition(new String[] {"type=apache","a","b","c_info","d", filter1});
+    String filter2 = "d==1";
+    oper.addFilterCondition(new String[] {"type=apache","d", filter2});
+    String filter3 = "a==\"1\"";
+    oper.addFilterCondition(new String[] {"type=apache","a", filter3});
+    String filter4 = "e==\"2\"";
+    oper.addFilterCondition(new String[] {"type=apache","e", filter4});
+    String filter5 = "response.equals(\"404\")";
+    oper.addFilterCondition(new String[] {"type=apache", "response", filter5});
+    String filter6 = "default=true";
+    oper.addFilterCondition(new String[] {"type=apache", filter6});
+    HashMap<String, Object> inMap = new HashMap<String, Object>();
 
-     //oper.addFilterCondition(new String[]{"type=apache","a","b","c_info","d","a==\"1\"&&b==\"2\"&&c_info==\"abc\""});
-     //oper.addFilterCondition(new String[]{"type=apache","d","d==1"});
-     //oper.addFilterCondition(new String[]{"type=apache","a","a==\"1\""});
-     oper.addFilterCondition(new String[]{"type=apache", "response", "response==\"404\""});
-     HashMap<String, Object> inMap = new HashMap<String, Object>();
-     inMap.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-     //inMap.put("a", "1");
-     //inMap.put("b", "2");
-     //inMap.put("c_info", "abc");
-     //inMap.put("d", 1);
-     //inMap.put("e", "3");
-     inMap.put("response", "404");
+    inMap.put(LogstreamUtil.LOG_TYPE, registry.getIndex(LogstreamUtil.LOG_TYPE, "apache"));
+    inMap.put("a", "1");
+    inMap.put("b", "2");
+    inMap.put("c_info", "abc");
+    inMap.put("d", 1);
+    inMap.put("e", "3");
+    inMap.put("response", "404");
 
-     CollectorTestSink mapSink = new CollectorTestSink();
-     oper.outputMap.setSink(mapSink);
+    Set<Integer> expectedPassSet = new HashSet<Integer>();
+    expectedPassSet.add(registry.getIndex(LogstreamUtil.FILTER, filter1));
+    expectedPassSet.add(registry.getIndex(LogstreamUtil.FILTER, filter2));
+    expectedPassSet.add(registry.getIndex(LogstreamUtil.FILTER, filter3));
+    expectedPassSet.add(registry.getIndex(LogstreamUtil.FILTER, filter5));
+    expectedPassSet.add(registry.getIndex(LogstreamUtil.FILTER, "apache_DEFAULT"));
 
-     oper.beginWindow(0);
-     oper.input.process(inMap);
-     oper.endWindow();
+    CollectorTestSink mapSink = new CollectorTestSink();
+    oper.outputMap.setSink(mapSink);
 
-     System.out.println(mapSink.collectedTuples);
-     //System.out.println("registry = " + registry.toString());
-     */
+    oper.beginWindow(0);
+    oper.input.process(inMap);
+    oper.endWindow();
 
+    Assert.assertEquals("tuple count", 5, mapSink.collectedTuples.size());
+
+    List<HashMap<String, Object>> tuples = mapSink.collectedTuples;
+
+    Set<Integer> actualPassSet = new HashSet<Integer>();
+    for (HashMap<String, Object> tuple : tuples) {
+      Integer filter = (Integer)tuple.get(LogstreamUtil.FILTER);
+      actualPassSet.add(filter);
+    }
+
+    Assert.assertEquals("Passed filters", expectedPassSet, actualPassSet);
   }
 
 }

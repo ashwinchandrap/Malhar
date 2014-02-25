@@ -5,8 +5,17 @@
 package com.datatorrent.apps.logstream;
 
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
+import com.datatorrent.common.util.DTThrowable;
+import com.datatorrent.lib.logs.DimensionObject;
 import com.datatorrent.lib.testbench.CollectorTestSink;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.lang.mutable.MutableDouble;
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -16,17 +25,17 @@ import org.junit.Test;
 public class DimensionOperatorTest
 {
   @Test
+  @SuppressWarnings("unchecked")
   public void testOperator()
   {
     DimensionOperator oper = new DimensionOperator();
     LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
     registry.bind("LOG_TYPE", "apache");
     registry.bind("FILTER", "ALL");
-    registry.bind("FILTER", "ANOTHER_TEST_FILTER");
     oper.setRegistry(registry);
     // user input example::
-    // type=apache,timebucket=m,timebucket=h,a:b:c,b:c,b,d,values=x.sum:y.sum:y.avg
-    oper.addPropertiesFromString(new String[] {"type=apache", "timebucket=m", "name", "url", "name:url","values=value.sum:value.avg"});
+    // type=apache,timebucket=m,timebucket=h,dimensions=a:b:c,dimensions=b:c,dimensions=b,dimensions=d,values=x.sum:y.sum:y.avg
+    oper.addPropertiesFromString(new String[] {"type=apache", "timebucket=s", "dimensions=name", "dimensions=url", "dimensions=name:url", "values=value.sum:value.avg"});
 
     HashMap<String, Object> inMap1 = new HashMap<String, Object>();
     inMap1.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
@@ -54,7 +63,7 @@ public class DimensionOperatorTest
 
     HashMap<String, Object> inMap4 = new HashMap<String, Object>();
     inMap4.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-    inMap4.put("FILTER", registry.getIndex("FILTER", "ANOTHER_TEST_FILTER"));
+    inMap4.put("FILTER", registry.getIndex("FILTER", "ALL"));
     inMap4.put("name", "abc");
     inMap4.put("url", "http://www.t.co");
     inMap4.put("value", 25);
@@ -63,16 +72,101 @@ public class DimensionOperatorTest
     CollectorTestSink mapSink = new CollectorTestSink();
     oper.aggregationsOutput.setSink(mapSink);
 
-    oper.beginWindow(0);
+    long now = System.currentTimeMillis();
+    long currentId = 0L;
+    long windowId = (now / 1000) << 32 | currentId;
+    oper.beginWindow(windowId);
     oper.in.process(inMap1);
     oper.in.process(inMap2);
     oper.in.process(inMap3);
     oper.in.process(inMap4);
+    try {
+      Thread.sleep(1000);
+    }
+    catch (Throwable ex) {
+      DTThrowable.rethrow(ex);
+    }
+
     oper.endWindow();
 
-    System.out.println(mapSink.collectedTuples);
-    //System.out.println("registry = " + registry.toString());
+    currentId++;
+    now = System.currentTimeMillis();
+    windowId = (now / 1000) << 32 | currentId;
+    oper.beginWindow(windowId);
+    oper.endWindow();
 
+    @SuppressWarnings("unchecked")
+    List<Map<String, DimensionObject<String>>> tuples = mapSink.collectedTuples;
+
+    for (Map<String, DimensionObject<String>> map : tuples) {
+      for (Entry<String, DimensionObject<String>> entry : map.entrySet()) {
+        String key = entry.getKey();
+        DimensionObject<String> dimObj = entry.getValue();
+        if (key.contains("COUNT")) {
+          if (dimObj.getVal().equals("xyz")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(1), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(3), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(3), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("xyz,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(1), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(4), dimObj.getCount());
+          }
+          else {
+            Assert.fail("Unexpected dimension object received: " + dimObj + " for key: " + key);
+          }
+        }
+        else if (key.contains("AVERAGE")) {
+          if (dimObj.getVal().equals("xyz")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("xyz,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else {
+            Assert.fail("Unexpected dimension object received: " + dimObj + " for key: " + key);
+          }
+        }
+        else if (key.contains("SUM")) {
+          if (dimObj.getVal().equals("xyz")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(75), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("abc,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(75), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("xyz,http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(25), dimObj.getCount());
+          }
+          else if (dimObj.getVal().equals("http://www.t.co")) {
+            Assert.assertEquals("Count for key " + key, new MutableDouble(100), dimObj.getCount());
+          }
+          else {
+            Assert.fail("Unexpected dimension object received: " + dimObj + " for key: " + key);
+          }
+        }
+        else {
+          Assert.fail("Unexpected key received: " + key);
+        }
+      }
+    }
   }
 
 }
