@@ -7,7 +7,10 @@ package com.datatorrent.apps.logstream;
 import com.datatorrent.lib.logs.DimensionObject;
 import com.datatorrent.lib.testbench.CollectorTestSink;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import junit.framework.Assert;
 import org.apache.commons.lang.mutable.MutableDouble;
 import org.junit.Test;
 
@@ -17,9 +20,10 @@ import org.junit.Test;
  */
 public class DimensionOperatorUnifierTest
 {
-
   @Test
-  public void testOperator() {
+  @SuppressWarnings("unchecked")
+  public void testOperator()
+  {
     DimensionOperatorUnifier unifier = new DimensionOperatorUnifier();
     CollectorTestSink sink = new CollectorTestSink();
 
@@ -65,9 +69,28 @@ public class DimensionOperatorUnifierTest
 
     unifier.endWindow();
 
-    System.out.println("## output ##");
-    System.out.println(sink.collectedTuples);
+    @SuppressWarnings("unchecked")
+    List<Map<String, DimensionObject<String>>> tuples = sink.collectedTuples;
 
+    Assert.assertEquals("Tuple Count", 4, tuples.size());
+
+    for (Map<String, DimensionObject<String>> map : tuples) {
+      for (Entry<String, DimensionObject<String>> entry : map.entrySet()) {
+        String key = entry.getKey();
+        DimensionObject<String> dimObj = entry.getValue();
+        if (key.equals("m|201402121900|0|65537|131074|bytes.AVERAGE") && dimObj.getVal().equals("a")) {
+          Assert.assertEquals("average for key " + key + " and dimension key " + "a", new MutableDouble(65), dimObj.getCount());
+        }
+
+        if (key.equals("m|201402121900|0|65537|131074|bytes.SUM") && dimObj.getVal().equals("z")) {
+          Assert.assertEquals("sum for key " + key + " and dimension key " + "z", new MutableDouble(100), dimObj.getCount());
+        }
+
+        if (key.equals("m|201402121900|0|65537|131076|bytes.COUNT") && dimObj.getVal().equals("c")) {
+          Assert.assertEquals("count for key " + key + " and dimension key " + "c", new MutableDouble(10), dimObj.getCount());
+        }
+      }
+    }
   }
 
 }
