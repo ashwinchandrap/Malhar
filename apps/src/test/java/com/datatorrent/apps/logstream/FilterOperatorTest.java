@@ -1,26 +1,32 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.apps.logstream;
 
-import com.datatorrent.api.*;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
-import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
-import com.datatorrent.lib.testbench.CollectorTestSink;
 import java.util.*;
-import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.validation.constraints.AssertTrue;
 import junit.framework.Assert;
-import org.apache.hadoop.conf.Configuration;
+
 import org.junit.Test;
+
+import com.datatorrent.lib.testbench.CollectorTestSink;
+
+import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 
 /**
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Tests logstream filter operator.
  */
 public class FilterOperatorTest
 {
@@ -35,13 +41,13 @@ public class FilterOperatorTest
     oper.setup(null);
 
     String filter1 = "a==\"1\"&&b==\"2\"&&c_info==\"abc\"";
-    oper.addFilterCondition(new String[] {"type=apache","a","b","c_info","d", filter1});
+    oper.addFilterCondition(new String[] {"type=apache", "a", "b", "c_info", "d", filter1});
     String filter2 = "d==1";
-    oper.addFilterCondition(new String[] {"type=apache","d", filter2});
+    oper.addFilterCondition(new String[] {"type=apache", "d", filter2});
     String filter3 = "a==\"1\"";
-    oper.addFilterCondition(new String[] {"type=apache","a", filter3});
+    oper.addFilterCondition(new String[] {"type=apache", "a", filter3});
     String filter4 = "e==\"2\"";
-    oper.addFilterCondition(new String[] {"type=apache","e", filter4});
+    oper.addFilterCondition(new String[] {"type=apache", "e", filter4});
     String filter5 = "response.equals(\"404\")";
     oper.addFilterCondition(new String[] {"type=apache", "response", filter5});
     String filter6 = "default=true";

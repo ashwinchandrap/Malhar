@@ -15,17 +15,23 @@
  */
 package com.datatorrent.apps.logstream;
 
+import org.apache.hadoop.conf.Configuration;
+
+import com.datatorrent.lib.io.ConsoleOutputOperator;
+import com.datatorrent.lib.stream.JsonByteArrayOperator;
+
 import com.datatorrent.api.Context.PortContext;
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
+
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
-import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.lib.stream.JsonByteArrayOperator;
-import org.apache.hadoop.conf.Configuration;
 
 /**
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * New logstream application.
+ * Takes inputs for log types, filters, dimensions and other properties from configuration file and creates multiple
+ * operator partitions to cater to those user inputs. It sends the final computation results through the widget output
+ *
  */
 public class Application1 implements StreamingApplication
 {
@@ -40,7 +46,7 @@ public class Application1 implements StreamingApplication
 
     RabbitMQLogsInputOperator logInput = dag.addOperator("LogInput", new RabbitMQLogsInputOperator());
     logInput.setRegistry(registry);
-    logInput.addPropertiesFromString(new String[] {"localhost", "logsExchange", "direct", "logs", "apache:mysql:syslog:system"});
+    logInput.addPropertiesFromString(new String[] {"localhost:5672", "logsExchange", "direct", "logs", "apache:mysql:syslog:system"});
 
     JsonByteArrayOperator jsonToMap = dag.addOperator("JsonToMap", new JsonByteArrayOperator());
     jsonToMap.setConcatenationCharacter('_');
@@ -48,21 +54,21 @@ public class Application1 implements StreamingApplication
     FilterOperator filterOperator = dag.addOperator("FilterOperator", new FilterOperator());
     filterOperator.setRegistry(registry);
     filterOperator.addFilterCondition(new String[] {"type=apache", "response", "response.equals(\"404\")"});
-    //filterOperator.addFilterCondition(new String[] {"type=apache", "agentinfo_name", "agentinfo_name.equals(\"Firefox\")"});
+    filterOperator.addFilterCondition(new String[] {"type=apache", "agentinfo_name", "agentinfo_name.equals(\"Firefox\")"});
     filterOperator.addFilterCondition(new String[] {"type=apache", "default=true"});
-    //filterOperator.addFilterCondition(new String[] {"type=mysql", "default=true"});
-    //filterOperator.addFilterCondition(new String[] {"type=syslog", "default=true"});
-    //filterOperator.addFilterCondition(new String[] {"type=system", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=mysql", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=syslog", "default=true"});
+    filterOperator.addFilterCondition(new String[] {"type=system", "default=true"});
 
     DimensionOperator dimensionOperator = dag.addOperator("DimensionOperator", new DimensionOperator());
     dimensionOperator.setRegistry(registry);
-    //String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=m", "dimensions=request", "dimensions=clientip", "dimensions=clientip:request", "values=bytes.sum:bytes.avg"};
-    String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=s", "dimensions=request", "dimensions=clientip","values=bytes.sum"};
-    //String[] dimensionInputString2 = new String[] {"type=system", "timebucket=m", "disk", "values=writes.avg"};
-    //String[] dimensionInputString3 = new String[] {"type=syslog", "timebucket=s", "program", "values=pid.count"};
+    String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=s", "dimensions=request", "dimensions=clientip", "dimensions=clientip:request", "values=bytes.sum:bytes.avg"};
+    //String[] dimensionInputString1 = new String[] {"type=apache", "timebucket=s", "dimensions=request", "dimensions=clientip","values=bytes.sum"};
+    String[] dimensionInputString2 = new String[] {"type=system", "timebucket=s", "dimensions=disk", "values=writes.avg"};
+    String[] dimensionInputString3 = new String[] {"type=syslog", "timebucket=s", "dimensions=program", "values=pid.count"};
     dimensionOperator.addPropertiesFromString(dimensionInputString1);
-    //dimensionOperator.addPropertiesFromString(dimensionInputString2);
-    //dimensionOperator.addPropertiesFromString(dimensionInputString3);
+    dimensionOperator.addPropertiesFromString(dimensionInputString2);
+    dimensionOperator.addPropertiesFromString(dimensionInputString3);
 
     LogstreamTopN topN = dag.addOperator("TopN", new LogstreamTopN());
     topN.setN(topNtupleCount);
