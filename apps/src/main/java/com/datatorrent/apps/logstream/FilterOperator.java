@@ -126,7 +126,7 @@ public class FilterOperator extends BaseOperator
    */
   public void setRegistry(PropertyRegistry<String> registry)
   {
-    FilterOperator.this.registry = registry;
+    this.registry = registry;
   }
 
   @Override

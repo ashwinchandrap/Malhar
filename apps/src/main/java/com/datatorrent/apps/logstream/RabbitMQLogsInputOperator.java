@@ -53,7 +53,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     String inputString = new String(message);
     try {
       JSONObject jSONObject = new JSONObject(inputString);
-      int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, RabbitMQLogsInputOperator.this.routingKey);
+      int typeId = registry.getIndex(LogstreamUtil.LOG_TYPE, routingKey);
       jSONObject.put(LogstreamUtil.LOG_TYPE, typeId);
       String outputString = jSONObject.toString();
       message = outputString.getBytes();
@@ -91,7 +91,7 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
       queueName = props[3];
 
       if (props[4] != null) {
-        RabbitMQLogsInputOperator.this.routingKeys = props[4].split(":");
+        routingKeys = props[4].split(":");
         for (String rKey : routingKeys) {
           registry.bind(LogstreamUtil.LOG_TYPE, rKey);
         }
@@ -128,12 +128,12 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     for (String rKey : routingKeys) {
       try {
         RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
-        oper.host = RabbitMQLogsInputOperator.this.host;
-        oper.port = RabbitMQLogsInputOperator.this.port;
-        oper.exchange = RabbitMQLogsInputOperator.this.exchange;
-        oper.exchangeType = RabbitMQLogsInputOperator.this.exchangeType;
-        oper.registry = RabbitMQLogsInputOperator.this.registry;
-        oper.routingKeys = RabbitMQLogsInputOperator.this.routingKeys;
+        oper.host = host;
+        oper.port = port;
+        oper.exchange = exchange;
+        oper.exchangeType = exchangeType;
+        oper.registry = registry;
+        oper.routingKeys = routingKeys;
         oper.routingKey = rKey;
         oper.queueName = rKey;
 

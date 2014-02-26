@@ -51,7 +51,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   public void process(Map<String, DimensionObject<String>> tuple)
   {
     if (firstTuple) {
-      DimensionOperatorUnifier.this.extractType(tuple);
+      extractType(tuple);
       firstTuple = false;
     }
 
@@ -75,9 +75,9 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
       logger.error("expected filter = {} received = {}", expectedFilter, receivedFilter);
     }
 
-    DimensionOperatorUnifier.this.computeAddition(tuple, AggregateOperation.SUM, key);
-    DimensionOperatorUnifier.this.computeAddition(tuple, AggregateOperation.COUNT, key);
-    DimensionOperatorUnifier.this.computeAverage(tuple, AggregateOperation.AVERAGE, key);
+    computeAddition(tuple, AggregateOperation.SUM, key);
+    computeAddition(tuple, AggregateOperation.COUNT, key);
+    computeAverage(tuple, AggregateOperation.AVERAGE, key);
   }
 
   private void computeAddition(Map<String, DimensionObject<String>> tuple, AggregateOperation opType, String key)

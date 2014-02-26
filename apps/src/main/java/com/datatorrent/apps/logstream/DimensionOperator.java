@@ -68,7 +68,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     @Override
     public void process(Map<String, Object> tuple)
     {
-      DimensionOperator.this.processTuple(tuple);
+      processTuple(tuple);
     }
 
     @Override
@@ -121,16 +121,16 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     else {
       time = LogstreamUtil.extractTime(currentWindowId, windowWidth);
     }
-    List<String> timeBucketList = DimensionOperator.this.getTimeBucketList(time);
+    List<String> timeBucketList = getTimeBucketList(time);
 
     if (firstTuple) {
       // populate record type
-      DimensionOperator.this.extractType(tuple);
+      extractType(tuple);
       outTimeBuckets = new ArrayList<String>(timeBucketList);
 
       // create all dimension combinations if not specified by user
       if (!dimensionCombinationList.containsKey((Integer)recordType.get(LogstreamUtil.LOG_TYPE))) {
-        DimensionOperator.this.createAllDimensionCombinations();
+        createAllDimensionCombinations();
       }
 
       dimensionCombinations = dimensionCombinationList.get((Integer)recordType.get(LogstreamUtil.LOG_TYPE));
@@ -178,7 +178,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
               String valueKeyName = entry.getKey();
               Object value = tuple.get(valueKeyName);
               Number numberValue = LogstreamUtil.extractNumber(value);
-              DimensionOperator.this.doComputations(timeBucket, dimensionCombinationId, dimValueName, valueKeyName, numberValue);
+              doComputations(timeBucket, dimensionCombinationId, dimValueName, valueKeyName, numberValue);
             }
           }
         }
@@ -304,7 +304,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     long time = LogstreamUtil.extractTime(currentWindowId, windowWidth);
 
     // get time buckets for current window id
-    List<String> timeBucketList = DimensionOperator.this.getTimeBucketList(time);
+    List<String> timeBucketList = getTimeBucketList(time);
 
     // get list of timebuckets to be emitted and replace them in outTimeBuckets with next time bucket to be emitted
     ArrayList<String> emitTimeBucketList = new ArrayList<String>();
@@ -365,7 +365,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
    */
   public void setRegistry(PropertyRegistry<String> registry)
   {
-    DimensionOperator.this.registry = registry;
+    this.registry = registry;
   }
 
   /**
@@ -482,10 +482,10 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
     for (int i = 0; i < partitionSize; i++) {
       try {
         DimensionOperator dimensionOperator = new DimensionOperator();
-        dimensionOperator.registry = DimensionOperator.this.registry;
-        dimensionOperator.timeBucketFlags = DimensionOperator.this.timeBucketFlags;
-        dimensionOperator.valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>(DimensionOperator.this.valueOperations);
-        dimensionOperator.dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>(DimensionOperator.this.dimensionCombinationList);
+        dimensionOperator.registry = registry;
+        dimensionOperator.timeBucketFlags = timeBucketFlags;
+        dimensionOperator.valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>(valueOperations);
+        dimensionOperator.dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>(dimensionCombinationList);
 
         Partition<DimensionOperator> partition = new DefaultPartition<DimensionOperator>(dimensionOperator);
         newPartitions.add(partition);

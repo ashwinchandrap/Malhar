@@ -73,7 +73,7 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
   public void processTuple(Map<String, DimensionObject<String>> tuple)
   {
     if (firstTuple) {
-      LogstreamTopN.this.extractType(tuple);
+      extractType(tuple);
       firstTuple = false;
     }
 
@@ -121,8 +121,8 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     for (int i = 0; i < partitionSize; i++) {
       try {
         LogstreamTopN logstreamTopN = new LogstreamTopN();
-        logstreamTopN.registry = LogstreamTopN.this.registry;
-        logstreamTopN.setN(LogstreamTopN.this.getN());
+        logstreamTopN.registry = this.registry;
+        logstreamTopN.setN(this.getN());
 
         Partition<LogstreamTopN> partition = new DefaultPartition<LogstreamTopN>(logstreamTopN);
         newPartitions.add(partition);

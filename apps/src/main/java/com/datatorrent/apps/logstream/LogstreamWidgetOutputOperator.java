@@ -105,7 +105,7 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
 
         String topic = keyInfo[0] + "|" + keyInfo[2] + "|" + keyInfo[3] + "|" + keyInfo[4] + "|" + keyInfo[5];
 
-        LogstreamTopNInputPort.this.setTopic(topic);
+        setTopic(topic);
 
         HashMap<String, Number> topNMap = new HashMap<String, Number>();
 
