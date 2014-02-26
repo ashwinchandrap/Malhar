@@ -43,40 +43,40 @@ public class DimensionOperatorTest
   {
     DimensionOperator oper = new DimensionOperator();
     LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
-    registry.bind("LOG_TYPE", "apache");
-    registry.bind("FILTER", "ALL");
+    registry.bind(LogstreamUtil.LOG_TYPE, "apache");
+    registry.bind(LogstreamUtil.FILTER, "ALL");
     oper.setRegistry(registry);
     // user input example::
     // type=apache,timebucket=m,timebucket=h,dimensions=a:b:c,dimensions=b:c,dimensions=b,dimensions=d,values=x.sum:y.sum:y.avg
     oper.addPropertiesFromString(new String[] {"type=apache", "timebucket=s", "dimensions=name", "dimensions=url", "dimensions=name:url", "values=value.sum:value.avg"});
 
     HashMap<String, Object> inMap1 = new HashMap<String, Object>();
-    inMap1.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-    inMap1.put("FILTER", registry.getIndex("FILTER", "ALL"));
+    inMap1.put(LogstreamUtil.LOG_TYPE, registry.getIndex(LogstreamUtil.LOG_TYPE, "apache"));
+    inMap1.put(LogstreamUtil.FILTER, registry.getIndex(LogstreamUtil.FILTER, "ALL"));
     inMap1.put("name", "abc");
     inMap1.put("url", "http://www.t.co");
     inMap1.put("value", 25);
     inMap1.put("response", "404");
 
     HashMap<String, Object> inMap2 = new HashMap<String, Object>();
-    inMap2.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-    inMap2.put("FILTER", registry.getIndex("FILTER", "ALL"));
+    inMap2.put(LogstreamUtil.LOG_TYPE, registry.getIndex(LogstreamUtil.LOG_TYPE, "apache"));
+    inMap2.put(LogstreamUtil.FILTER, registry.getIndex(LogstreamUtil.FILTER, "ALL"));
     inMap2.put("name", "xyz");
     inMap2.put("url", "http://www.t.co");
     inMap2.put("value", 25);
     inMap2.put("response", "404");
 
     HashMap<String, Object> inMap3 = new HashMap<String, Object>();
-    inMap3.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-    inMap3.put("FILTER", registry.getIndex("FILTER", "ALL"));
+    inMap3.put(LogstreamUtil.LOG_TYPE, registry.getIndex(LogstreamUtil.LOG_TYPE, "apache"));
+    inMap3.put(LogstreamUtil.FILTER, registry.getIndex(LogstreamUtil.FILTER, "ALL"));
     inMap3.put("name", "abc");
     inMap3.put("url", "http://www.t.co");
     inMap3.put("value", 25);
     inMap3.put("response", "404");
 
     HashMap<String, Object> inMap4 = new HashMap<String, Object>();
-    inMap4.put("LOG_TYPE", registry.getIndex("LOG_TYPE", "apache"));
-    inMap4.put("FILTER", registry.getIndex("FILTER", "ALL"));
+    inMap4.put(LogstreamUtil.LOG_TYPE, registry.getIndex(LogstreamUtil.LOG_TYPE, "apache"));
+    inMap4.put(LogstreamUtil.FILTER, registry.getIndex(LogstreamUtil.FILTER, "ALL"));
     inMap4.put("name", "abc");
     inMap4.put("url", "http://www.t.co");
     inMap4.put("value", 25);

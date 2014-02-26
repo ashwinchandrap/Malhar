@@ -30,7 +30,6 @@ import com.datatorrent.lib.logs.DimensionObject;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.api.Operator.Unifier;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 
@@ -68,7 +67,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
 
     String[] split = randomKey.split("\\|");
     Number receivedFilter = new Integer(split[3]);
-    Number expectedFilter = recordType.get("FILTER");
+    Number expectedFilter = recordType.get(LogstreamUtil.FILTER);
 
     if (!receivedFilter.equals(expectedFilter)) {
       logger.error("Unexpected tuple");
@@ -221,7 +220,7 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
     String[] split = randomKey.split("\\|");
     Number filterId = new Integer(split[3]);
 
-    recordType.put("FILTER", filterId);
+    recordType.put(LogstreamUtil.FILTER, filterId);
   }
 
 }
