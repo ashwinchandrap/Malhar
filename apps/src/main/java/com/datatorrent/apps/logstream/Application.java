@@ -79,7 +79,6 @@ import com.datatorrent.contrib.redis.RedisNumberSummationMapOutputOperator;
  * </li>
  * </ul>
  *
- * @since 0.3.5
  */
 public class Application implements StreamingApplication
 {
