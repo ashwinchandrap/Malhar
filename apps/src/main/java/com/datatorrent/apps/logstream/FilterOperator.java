@@ -22,12 +22,11 @@ import java.util.Map;
 import javax.validation.ValidationException;
 
 import org.codehaus.janino.ExpressionEvaluator;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datatorrent.api.*;
 import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.api.annotation.ShipContainingJars;
 
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
@@ -41,35 +40,7 @@ import com.datatorrent.common.util.DTThrowable;
 @ShipContainingJars(classes = {org.codehaus.janino.ExpressionEvaluator.class})
 public class FilterOperator extends BaseOperator
 {
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(FilterOperator.class);
-  /**
-   * key: type
-   * value --> map of
-   * key: condition expression
-   * value: list of keys on which the condition is
-   */
-  private HashMap<Integer, Map<String, String[]>> conditionList = new HashMap<Integer, Map<String, String[]>>();
-  private transient HashMap<String, ExpressionEvaluator> evaluators = new HashMap<String, ExpressionEvaluator>();
-  private PropertyRegistry<String> registry;
-
-  /**
-   * supply the registry object which is used to store and retrieve meta information about each tuple
-   *
-   * @param registry
-   */
-  public void setRegistry(PropertyRegistry<String> registry)
-  {
-    FilterOperator.this.registry = registry;
-  }
-
-  @Override
-  public void setup(OperatorContext context)
-  {
-    super.setup(context);
-    LogstreamPropertyRegistry.setInstance(registry);
-  }
-
-  @InputPortFieldAnnotation(name = "input")
+  public final transient DefaultOutputPort<HashMap<String, Object>> outputMap = new DefaultOutputPort<HashMap<String, Object>>();
   public final transient DefaultInputPort<Map<String, Object>> input = new DefaultInputPort<Map<String, Object>>()
   {
     @Override
@@ -137,6 +108,33 @@ public class FilterOperator extends BaseOperator
     }
 
   };
+  private static final Logger logger = LoggerFactory.getLogger(FilterOperator.class);
+  /**
+   * key: type
+   * value --> map of
+   * key: condition expression
+   * value: list of keys on which the condition is
+   */
+  private HashMap<Integer, Map<String, String[]>> conditionList = new HashMap<Integer, Map<String, String[]>>();
+  private transient HashMap<String, ExpressionEvaluator> evaluators = new HashMap<String, ExpressionEvaluator>();
+  private PropertyRegistry<String> registry;
+
+  /**
+   * supply the registry object which is used to store and retrieve meta information about each tuple
+   *
+   * @param registry
+   */
+  public void setRegistry(PropertyRegistry<String> registry)
+  {
+    FilterOperator.this.registry = registry;
+  }
+
+  @Override
+  public void setup(OperatorContext context)
+  {
+    super.setup(context);
+    LogstreamPropertyRegistry.setInstance(registry);
+  }
 
   /**
    * Supply the properties to the operator.
@@ -199,6 +197,4 @@ public class FilterOperator extends BaseOperator
 
   }
 
-  @OutputPortFieldAnnotation(name = "outputMap")
-  public final transient DefaultOutputPort<HashMap<String, Object>> outputMap = new DefaultOutputPort<HashMap<String, Object>>();
 }

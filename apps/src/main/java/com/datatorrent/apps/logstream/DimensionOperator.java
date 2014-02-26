@@ -36,8 +36,6 @@ import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.Operator.Unifier;
 import com.datatorrent.api.Partitionable.Partition;
 import com.datatorrent.api.Partitionable.PartitionKeys;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
@@ -51,6 +49,35 @@ import com.datatorrent.common.util.DTThrowable;
  */
 public class DimensionOperator extends BaseOperator implements Partitionable<DimensionOperator>
 {
+  /**
+   * key: timebucket|timestamp|recordtype|filter|dimensionId|value.operationType
+   * value: DimensionObject
+   */
+  public final transient DefaultOutputPort<Map<String, DimensionObject<String>>> aggregationsOutput = new DefaultOutputPort<Map<String, DimensionObject<String>>>()
+  {
+    @Override
+    public Unifier<Map<String, DimensionObject<String>>> getUnifier()
+    {
+      DimensionOperatorUnifier unifier = new DimensionOperatorUnifier();
+      return unifier;
+    }
+
+  };
+  public final transient DefaultInputPort<Map<String, Object>> in = new DefaultInputPort<Map<String, Object>>()
+  {
+    @Override
+    public void process(Map<String, Object> tuple)
+    {
+      DimensionOperator.this.processTuple(tuple);
+    }
+
+    @Override
+    public Class<? extends StreamCodec<Map<String, Object>>> getStreamCodec()
+    {
+      return DimensionOperatorStreamCodec.class;
+    }
+
+  };
   @NotNull
   private PropertyRegistry<String> registry;
   private static final Logger logger = LoggerFactory.getLogger(DimensionOperator.class);
@@ -79,38 +106,6 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
     LogstreamPropertyRegistry.setInstance(registry);
   }
-
-  /**
-   * key: timebucket|timestamp|recordtype|dimensionId|value.operationType
-   * value: DimensionObject
-   */
-  @OutputPortFieldAnnotation(name = "aggregationsOutput")
-  public final transient DefaultOutputPort<Map<String, DimensionObject<String>>> aggregationsOutput = new DefaultOutputPort<Map<String, DimensionObject<String>>>()
-  {
-    @Override
-    public Unifier<Map<String, DimensionObject<String>>> getUnifier()
-    {
-      DimensionOperatorUnifier unifier = new DimensionOperatorUnifier();
-      return unifier;
-    }
-
-  };
-  @InputPortFieldAnnotation(name = "in")
-  public final transient DefaultInputPort<Map<String, Object>> in = new DefaultInputPort<Map<String, Object>>()
-  {
-    @Override
-    public void process(Map<String, Object> tuple)
-    {
-      DimensionOperator.this.processTuple(tuple);
-    }
-
-    @Override
-    public Class<? extends StreamCodec<Map<String, Object>>> getStreamCodec()
-    {
-      return DimensionOperatorStreamCodec.class;
-    }
-
-  };
 
   /**
    * Does dimensional computations for each incoming tuple and populates the cache with the computations

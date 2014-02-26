@@ -39,13 +39,13 @@ import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
  */
 public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionObject<String>>>
 {
-  private static final Logger logger = LoggerFactory.getLogger(DimensionOperatorUnifier.class);
-  @OutputPortFieldAnnotation(name = "aggregationsOutput")
   public final transient DefaultOutputPort<Map<String, DimensionObject<String>>> aggregationsOutput = new DefaultOutputPort<Map<String, DimensionObject<String>>>();
+
   Map<String, DimensionObject<String>> unifiedOutput;
   private Map<String, Map<String, Map<AggregateOperation, Number>>> unifiedCache = new HashMap<String, Map<String, Map<AggregateOperation, Number>>>();
   private transient boolean firstTuple = true;
   private HashMap<String, Number> recordType = new HashMap<String, Number>();
+  private static final Logger logger = LoggerFactory.getLogger(DimensionOperatorUnifier.class);
 
   @Override
   public void process(Map<String, DimensionObject<String>> tuple)
@@ -198,8 +198,6 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
       }
 
     }
-
-    unifiedCache = new HashMap<String, Map<String, Map<AggregateOperation, Number>>>();
   }
 
   @Override

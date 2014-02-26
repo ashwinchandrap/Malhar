@@ -30,7 +30,6 @@ import com.datatorrent.lib.logs.DimensionObject;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 
 import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry;
 import com.datatorrent.apps.logstream.PropertyRegistry.PropertyRegistry;
@@ -43,7 +42,6 @@ public class LogstreamWidgetOutputOperator extends WidgetOutputOperator
 {
   @NotNull
   private PropertyRegistry<String> registry;
-  @InputPortFieldAnnotation(name = "logstream topN input", optional = true)
   public final transient LogstreamTopNInputPort logstreamTopNInput = new LogstreamTopNInputPort(LogstreamWidgetOutputOperator.this);
 
   /**
