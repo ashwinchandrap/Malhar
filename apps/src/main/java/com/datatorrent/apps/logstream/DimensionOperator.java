@@ -464,18 +464,6 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
   }
 
   @Override
-  protected Object clone() throws CloneNotSupportedException
-  {
-    DimensionOperator dimOper = new DimensionOperator();
-    dimOper.registry = DimensionOperator.this.registry;
-    dimOper.timeBucketFlags = DimensionOperator.this.timeBucketFlags;
-    dimOper.valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>(DimensionOperator.this.valueOperations);
-    dimOper.dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>(DimensionOperator.this.dimensionCombinationList);
-
-    return dimOper;
-  }
-
-  @Override
   public Collection<Partition<DimensionOperator>> definePartitions(Collection<Partition<DimensionOperator>> partitions, int incrementalCapacity)
   {
     ArrayList<Partition<DimensionOperator>> newPartitions = new ArrayList<Partition<DimensionOperator>>();
@@ -493,7 +481,12 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
     for (int i = 0; i < partitionSize; i++) {
       try {
-        DimensionOperator dimensionOperator = (DimensionOperator)DimensionOperator.this.clone();
+        DimensionOperator dimensionOperator = new DimensionOperator();
+        dimensionOperator.registry = DimensionOperator.this.registry;
+        dimensionOperator.timeBucketFlags = DimensionOperator.this.timeBucketFlags;
+        dimensionOperator.valueOperations = new HashMap<Integer, HashMap<String, HashSet<AggregateOperation>>>(DimensionOperator.this.valueOperations);
+        dimensionOperator.dimensionCombinationList = new HashMap<Integer, ArrayList<Integer>>(DimensionOperator.this.dimensionCombinationList);
+
         Partition<DimensionOperator> partition = new DefaultPartition<DimensionOperator>(dimensionOperator);
         newPartitions.add(partition);
       }

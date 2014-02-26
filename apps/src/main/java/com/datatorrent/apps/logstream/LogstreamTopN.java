@@ -97,17 +97,6 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
   }
 
   @Override
-  protected Object clone() throws CloneNotSupportedException
-  {
-    LogstreamTopN logstreamTopN = new LogstreamTopN();
-    logstreamTopN.registry = LogstreamTopN.this.registry;
-    logstreamTopN.setN(LogstreamTopN.this.getN());
-
-    return logstreamTopN;
-
-  }
-
-  @Override
   protected Class<? extends StreamCodec<Map<String, DimensionObject<String>>>> getStreamCodec()
   {
     return LogstreamTopNStreamCodec.class;
@@ -131,7 +120,9 @@ public class LogstreamTopN extends TopN<String, DimensionObject<String>> impleme
     }
     for (int i = 0; i < partitionSize; i++) {
       try {
-        LogstreamTopN logstreamTopN = (LogstreamTopN)LogstreamTopN.this.clone();
+        LogstreamTopN logstreamTopN = new LogstreamTopN();
+        logstreamTopN.registry = LogstreamTopN.this.registry;
+        logstreamTopN.setN(LogstreamTopN.this.getN());
 
         Partition<LogstreamTopN> partition = new DefaultPartition<LogstreamTopN>(logstreamTopN);
         newPartitions.add(partition);

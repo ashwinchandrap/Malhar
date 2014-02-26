@@ -113,22 +113,6 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     this.registry = registry;
   }
 
-  @Override
-  protected RabbitMQLogsInputOperator clone() throws CloneNotSupportedException
-  {
-    RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
-    oper.host = RabbitMQLogsInputOperator.this.host;
-    oper.port = RabbitMQLogsInputOperator.this.port;
-    oper.exchange = RabbitMQLogsInputOperator.this.exchange;
-    oper.exchangeType = RabbitMQLogsInputOperator.this.exchangeType;
-    oper.registry = RabbitMQLogsInputOperator.this.registry;
-    oper.routingKeys = RabbitMQLogsInputOperator.this.routingKeys;
-    oper.routingKey = RabbitMQLogsInputOperator.this.routingKey;
-    oper.queueName = RabbitMQLogsInputOperator.this.queueName;
-
-    return oper;
-  }
-
   /**
    * Partitions count will be the number of input routing keys.
    * Each partition receives tuples from its routing key.
@@ -143,7 +127,13 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
     ArrayList<Partition<RabbitMQLogsInputOperator>> newPartitions = new ArrayList<Partition<RabbitMQLogsInputOperator>>();
     for (String rKey : routingKeys) {
       try {
-        RabbitMQLogsInputOperator oper = RabbitMQLogsInputOperator.this.clone();
+        RabbitMQLogsInputOperator oper = new RabbitMQLogsInputOperator();
+        oper.host = RabbitMQLogsInputOperator.this.host;
+        oper.port = RabbitMQLogsInputOperator.this.port;
+        oper.exchange = RabbitMQLogsInputOperator.this.exchange;
+        oper.exchangeType = RabbitMQLogsInputOperator.this.exchangeType;
+        oper.registry = RabbitMQLogsInputOperator.this.registry;
+        oper.routingKeys = RabbitMQLogsInputOperator.this.routingKeys;
         oper.routingKey = rKey;
         oper.queueName = rKey;
 
