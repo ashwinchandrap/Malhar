@@ -16,7 +16,7 @@
 package com.datatorrent.apps.logstream;
 
 import java.util.*;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import org.junit.Test;
 
