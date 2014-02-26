@@ -9,12 +9,13 @@ import org.junit.Test;
 
 /**
  *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Tests logstream property registry
  */
 public class LogstreamPropertyRegistryTest
 {
   @Test
-  public void test() {
+  public void test()
+  {
     LogstreamPropertyRegistry registry = new LogstreamPropertyRegistry();
 
     registry.bind("ONE", "a");

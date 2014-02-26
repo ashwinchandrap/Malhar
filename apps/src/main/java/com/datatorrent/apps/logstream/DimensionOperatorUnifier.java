@@ -24,8 +24,7 @@ import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.datatorrent.apps.logstream.LogstreamUtil.AggregateOperation;
 
 /**
- *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Unifies the output of dimension operator for every window.
  */
 public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionObject<String>>>
 {

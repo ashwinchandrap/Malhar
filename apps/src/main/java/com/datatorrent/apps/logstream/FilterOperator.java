@@ -15,10 +15,6 @@
  */
 package com.datatorrent.apps.logstream;
 
-/**
- *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
- */
 import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
