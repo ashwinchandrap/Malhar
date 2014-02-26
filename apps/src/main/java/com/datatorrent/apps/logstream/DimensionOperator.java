@@ -402,7 +402,6 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
           String[] values = split[1].split(":");
           for (String value : values) {
             String[] valueNames = value.split("\\.");
-            logger.info("value = {}, value after split = {}", value, Arrays.toString(valueNames));
             String valueName = valueNames[0];
             String valueType = valueNames[1];
             if (valueType.toLowerCase().equals("sum")) {
@@ -458,8 +457,7 @@ public class DimensionOperator extends BaseOperator implements Partitionable<Dim
 
     }
     catch (Exception e) {
-      logger.error("input properties validation", e);
-      System.exit(0);
+      throw new RuntimeException(e);
     }
   }
 

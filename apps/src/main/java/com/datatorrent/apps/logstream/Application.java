@@ -60,12 +60,6 @@ import com.datatorrent.contrib.redis.RedisNumberSummationMapOutputOperator;
  * LocalMode.runApp(new Application(), 600000); // 10 min run
  * </pre>
  *
- * Output : <br>
- * During successful deployment and run, user should see following output:
- * TODO
- * <pre>
- * </pre>
- *
  * Application DAG : <br>
  * TODO
  * <img src="doc-files/Application.gif" width=600px > <br>
@@ -90,7 +84,6 @@ public class Application implements StreamingApplication
       String appId = "appid";
       //appId = dag.attrValue(DAG.APPLICATION_ID, null); // will be used once UI is able to pick applications from list and listen to corresponding application
       String topic = "apps.logstream." + appId + "." + operatorName;
-      //LOG.info("WebSocket with daemon at: {}", daemonAddress);
       PubSubWebSocketOutputOperator<Object> wsOut = dag.addOperator(operatorName, new PubSubWebSocketOutputOperator<Object>());
       wsOut.setUri(uri);
       wsOut.setTopic(topic);
@@ -205,6 +198,7 @@ public class Application implements StreamingApplication
       oper.addCombination(dimensionKey12);
     }
     catch (NoSuchFieldException e) {
+      throw new RuntimeException("Exception while while adding operator " + name, e);
     }
 
     oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
@@ -247,7 +241,6 @@ public class Application implements StreamingApplication
     oper.setTimeBucket("m");
     oper.setDimensionKeyVal("0"); // aggregate on count
     oper.setWindowSize(2); // 1 sec window
-    // oper.setOperationType(AggregateOperation.AVERAGE);
 
     return oper;
   }
@@ -328,6 +321,7 @@ public class Application implements StreamingApplication
       oper.addCombination(dimensionKey2);
     }
     catch (NoSuchFieldException e) {
+      throw new RuntimeException("Exception while while adding operator " + name, e);
     }
 
     oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
@@ -380,11 +374,11 @@ public class Application implements StreamingApplication
     Set<String> dimensionKey = new HashSet<String>();
 
     dimensionKey.add("user");
-    //dimensionKey.add("rows_examined");
     try {
       oper.addCombination(dimensionKey);
     }
     catch (NoSuchFieldException e) {
+      throw new RuntimeException("Exception while while adding operator " + name, e);
     }
 
     oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
@@ -403,8 +397,6 @@ public class Application implements StreamingApplication
     oper.setTimeBucket("m");
     oper.setDimensionKeyVal("1");
 
-    // oper.setOperationType(AggregateOperation.AVERAGE);
-
     return oper;
   }
 
@@ -420,11 +412,11 @@ public class Application implements StreamingApplication
     Set<String> dimensionKey = new HashSet<String>();
 
     dimensionKey.add("program");
-    //dimensionKey.add("rows_examined");
     try {
       oper.addCombination(dimensionKey);
     }
     catch (NoSuchFieldException e) {
+      throw new RuntimeException("Exception while while adding operator " + name, e);
     }
 
     oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
@@ -442,8 +434,6 @@ public class Application implements StreamingApplication
 
     oper.setTimeBucket("m");
     oper.setDimensionKeyVal("1");
-
-    // oper.setOperationType(AggregateOperation.AVERAGE);
 
     return oper;
   }
@@ -469,6 +459,7 @@ public class Application implements StreamingApplication
       oper.addCombination(dimensionKey);
     }
     catch (NoSuchFieldException e) {
+      throw new RuntimeException("Exception while while adding operator " + name, e);
     }
 
     oper.setTimeBucketFlags(AbstractDimensionTimeBucketOperator.TIMEBUCKET_MINUTE);
@@ -517,12 +508,6 @@ public class Application implements StreamingApplication
     RabbitMQLogsInputOperator mysqlLogInput = dag.addOperator("MysqlLogInput", RabbitMQLogsInputOperator.class);
     RabbitMQLogsInputOperator syslogLogInput = dag.addOperator("SyslogLogInput", RabbitMQLogsInputOperator.class);
     RabbitMQLogsInputOperator systemLogInput = dag.addOperator("SystemLogInput", RabbitMQLogsInputOperator.class);
-
-    // Get logs from Redis
-    //RedisBLPOPStringInputOperator redisInput = dag.addOperator("redisInput", new RedisBLPOPStringInputOperator());
-    //redisInput.setHost("localhost");
-    //redisInput.setPort(6379);
-    //redisInput.setRedisKeys("logstash");
 
     // dynamically partition based on number of incoming tuples from the queue
     //dag.setAttribute(apacheLogInput, OperatorContext.INITIAL_PARTITION_COUNT, 2);

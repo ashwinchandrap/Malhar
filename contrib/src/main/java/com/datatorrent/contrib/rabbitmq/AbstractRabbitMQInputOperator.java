@@ -83,9 +83,9 @@ ActivationListener<OperatorContext>
   private int tuple_blast = DEFAULT_BLAST_SIZE;
   protected int bufferSize = DEFAULT_BUFFER_SIZE;
 
-  protected transient Connection connection = null;
-  protected transient Channel channel = null;
-  protected transient TracingConsumer tracingConsumer = null;
+  protected transient Connection connection;
+  protected transient Channel channel;
+  protected transient TracingConsumer tracingConsumer;
   protected transient String cTag;
   protected transient ArrayBlockingQueue<byte[]> holdingBuffer;
 
@@ -193,7 +193,7 @@ ActivationListener<OperatorContext>
       cTag = channel.basicConsume(queueName, true, tracingConsumer);
     }
     catch (IOException ex) {
-      logger.error("Something wrong while setting up connection", ex);
+      throw new RuntimeException("Connection Failure", ex);
     }
   }
 

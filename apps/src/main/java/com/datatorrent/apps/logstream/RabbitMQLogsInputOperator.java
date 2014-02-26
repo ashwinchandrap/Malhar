@@ -117,12 +117,12 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
    * Partitions count will be the number of input routing keys.
    * Each partition receives tuples from its routing key.
    *
-   * @param clctn
-   * @param i
+   * @param partitions
+   * @param incrementalCapacity
    * @return
    */
   @Override
-  public Collection<Partition<RabbitMQLogsInputOperator>> definePartitions(Collection<Partition<RabbitMQLogsInputOperator>> clctn, int i)
+  public Collection<Partition<RabbitMQLogsInputOperator>> definePartitions(Collection<Partition<RabbitMQLogsInputOperator>> partitions, int incrementalCapacity)
   {
     ArrayList<Partition<RabbitMQLogsInputOperator>> newPartitions = new ArrayList<Partition<RabbitMQLogsInputOperator>>();
     for (String rKey : routingKeys) {

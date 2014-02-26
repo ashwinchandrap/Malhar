@@ -157,7 +157,7 @@ public class FilterOperator extends BaseOperator
     try {
       // TODO: validations
       if (properties.length == 2) {
-        logger.info(Arrays.toString(properties));
+        logger.debug(Arrays.toString(properties));
         String[] split = properties[0].split("=");
         String type = split[1];
         String[] split1 = properties[1].split("=");
@@ -191,10 +191,7 @@ public class FilterOperator extends BaseOperator
       }
     }
     catch (Exception ex) {
-      logger.error("input properties validation", ex);
-      System.exit(0);
+      throw new RuntimeException(ex);
     }
-
   }
-
 }

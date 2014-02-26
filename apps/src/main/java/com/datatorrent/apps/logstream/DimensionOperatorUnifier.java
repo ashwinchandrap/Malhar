@@ -170,7 +170,6 @@ public class DimensionOperatorUnifier implements Unifier<Map<String, DimensionOb
   @Override
   public void endWindow()
   {
-    //logger.info("in end window, cache object size = {}", cacheObject.size());
     Map<String, DimensionObject<String>> outputAggregationsObject;
 
     for (Entry<String, Map<String, Map<AggregateOperation, Number>>> keys : unifiedCache.entrySet()) {

@@ -22,8 +22,6 @@ import javax.validation.constraints.NotNull;
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
-import com.datatorrent.api.annotation.InputPortFieldAnnotation;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 /**
  * Sums the value of the selected dimension from the map over application window
@@ -42,7 +40,6 @@ public class SumItemFromMapOperator<K, V> extends BaseOperator
     this.sumDimension = sumDimension;
   }
 
-  @InputPortFieldAnnotation(name = "mapInput")
   public final transient DefaultInputPort<Map<K, V>> mapInput = new DefaultInputPort<Map<K, V>>()
   {
     @Override
@@ -55,7 +52,6 @@ public class SumItemFromMapOperator<K, V> extends BaseOperator
     }
 
   };
-  @OutputPortFieldAnnotation(name = "output")
   public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
 
   @Override

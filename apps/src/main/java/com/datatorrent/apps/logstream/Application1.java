@@ -30,7 +30,7 @@ import com.datatorrent.apps.logstream.PropertyRegistry.LogstreamPropertyRegistry
  *
  * New logstream application.
  * Takes inputs for log types, filters, dimensions and other properties from configuration file and creates multiple
- * operator partitions to cater to those user inputs. It sends the final computation results through the widget output
+ * operator partitions to cater to those user inputs. It sends the final computation results through the widget output.
  *
  */
 public class Application1 implements StreamingApplication
@@ -79,7 +79,6 @@ public class Application1 implements StreamingApplication
     widgetOut.setRegistry(registry);
 
     ConsoleOutputOperator consoleOut = dag.addOperator("ConsoleOut", new ConsoleOutputOperator());
-    //consoleOut.silent = true;
 
     dag.addStream("inputJSonToMap", logInput.outputPort, jsonToMap.input);
     dag.addStream("toFilterOper", jsonToMap.outputFlatMap, filterOperator.input);
