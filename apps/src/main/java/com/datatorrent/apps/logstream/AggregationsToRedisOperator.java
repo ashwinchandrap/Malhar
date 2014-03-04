@@ -25,6 +25,7 @@ import com.datatorrent.lib.util.KeyValPair;
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.annotation.InputPortFieldAnnotation;
 
 /**
  * Operator that takes in aggregations and converts them to format accepted by redis output operator
@@ -52,6 +53,7 @@ public class AggregationsToRedisOperator<K, V> extends BaseOperator
     this.dimensionToKeyIndexMap = dimensionTodbIndexMap;
   }
 
+  @InputPortFieldAnnotation(name= "multiWindowDimensionInput", optional=true)
   public final transient DefaultInputPort<HashMap<K, ArrayList<DimensionObject<String>>>> multiWindowDimensionInput = new DefaultInputPort<HashMap<K, ArrayList<DimensionObject<String>>>>()
   {
     @Override
@@ -75,6 +77,7 @@ public class AggregationsToRedisOperator<K, V> extends BaseOperator
     }
 
   };
+  @InputPortFieldAnnotation(name = "valueInput", optional = true)
   public final transient DefaultInputPort<V> valueInput = new DefaultInputPort<V>()
   {
     @Override

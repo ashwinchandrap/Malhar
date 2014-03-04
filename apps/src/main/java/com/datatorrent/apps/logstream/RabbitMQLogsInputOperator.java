@@ -50,6 +50,9 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   @Override
   public byte[] getTuple(byte[] message)
   {
+    if (registry == null) {
+      return message;
+    }
     String inputString = new String(message);
     try {
       JSONObject jSONObject = new JSONObject(inputString);
@@ -67,8 +70,10 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
 
   /**
    * Supply the properties to the operator.
-   * The properties include hostname, exchange, exchangeType, queueName and colon separated routing keys specified in the following format
+   * The properties include hostname, exchange, exchangeType and colon separated routing keys specified in the following format
    * hostName[:port], exchange, exchangeType, queueName, routingKey1[:routingKey2]
+   *
+   * The queue name is assumed to be same as routing key
    *
    * @param props
    */
@@ -76,8 +81,8 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   {
     try {
       //input string format
-      //host, exchange, exchangeType, queueName, routingKey1:routingKey2:routingKey3
-      //eg: localhost:5672, logstash, direct, logs, apache:mysql:syslog
+      //host, exchange, exchangeType, routingKey1:routingKey2:routingKey3
+      //eg: localhost:5672, logstash, direct, apache:mysql:syslog
       if (props[0].contains(":")){
         String[] split = props[0].split(":");
         host = split[0];
@@ -88,18 +93,16 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
 
       exchange = props[1];
       exchangeType = props[2];
-      queueName = props[3];
 
-      if (props[4] != null) {
-        routingKeys = props[4].split(":");
+      if (props[3] != null) {
+        routingKeys = props[3].split(":");
         for (String rKey : routingKeys) {
           registry.bind(LogstreamUtil.LOG_TYPE, rKey);
         }
       }
     }
     catch (Exception ex) {
-      logger.error("input properties validation", ex);
-      System.exit(0);
+      throw new RuntimeException(ex);
     }
   }
 
@@ -124,6 +127,10 @@ public class RabbitMQLogsInputOperator extends AbstractSinglePortRabbitMQInputOp
   @Override
   public Collection<Partition<RabbitMQLogsInputOperator>> definePartitions(Collection<Partition<RabbitMQLogsInputOperator>> partitions, int incrementalCapacity)
   {
+    if (routingKeys == null || routingKeys.length == 0) {
+      return partitions;
+    }
+
     ArrayList<Partition<RabbitMQLogsInputOperator>> newPartitions = new ArrayList<Partition<RabbitMQLogsInputOperator>>();
     for (String rKey : routingKeys) {
       try {

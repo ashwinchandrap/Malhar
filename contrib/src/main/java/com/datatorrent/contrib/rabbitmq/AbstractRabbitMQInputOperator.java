@@ -170,7 +170,10 @@ ActivationListener<OperatorContext>
     try {
       connFactory = new ConnectionFactory();
       connFactory.setHost(host);
-      connFactory.setPort(port);
+      if (port != 0){
+        connFactory.setPort(port);
+      }
+
       connection = connFactory.newConnection();
       channel = connection.createChannel();
 

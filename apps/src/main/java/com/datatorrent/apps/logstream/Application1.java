@@ -46,7 +46,7 @@ public class Application1 implements StreamingApplication
 
     RabbitMQLogsInputOperator logInput = dag.addOperator("LogInput", new RabbitMQLogsInputOperator());
     logInput.setRegistry(registry);
-    logInput.addPropertiesFromString(new String[] {"localhost:5672", "logsExchange", "direct", "logs", "apache:mysql:syslog:system"});
+    logInput.addPropertiesFromString(new String[] {"localhost:5672", "logsExchange", "direct", "apache:mysql:syslog:system"});
 
     JsonByteArrayOperator jsonToMap = dag.addOperator("JsonToMap", new JsonByteArrayOperator());
     jsonToMap.setConcatenationCharacter('_');
