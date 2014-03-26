@@ -1,55 +1,75 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.contrib.db;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.validation.constraints.NotNull;
+
+import com.datatorrent.lib.db.DataStoreWriter;
+import com.datatorrent.lib.datamodel.converter.Converter;
 
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
-import com.datatorrent.lib.database.DataStoreWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import javax.validation.constraints.NotNull;
 
 /**
+ * Output operator to write tuples to given data store
+ * Tuples are written in batches at each endwindow
  *
- * @param <T>
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * @param <INPUT> input type
+ * @param <OUTPUT> output type
  */
-public class DataStoreOutputOperator<T> extends BaseOperator
+public class DataStoreOutputOperator<INPUT, OUTPUT> extends BaseOperator
 {
+  /*
+   * data store used to write the output
+   */
   @NotNull
-  DataStoreWriter<T> dataStore;
-  private List<T> cache = new ArrayList<T>();
+  DataStoreWriter<OUTPUT> dataStoreWriter;
+  /*
+   * cache tuples to insert in end window
+   */
+  private List<OUTPUT> cache = new ArrayList<OUTPUT>();
   private long currentWindowId;
+  /*
+   * converter used to convert input type to output type
+   */
+  private Converter<INPUT, OUTPUT> converter;
 
-  public final transient DefaultInputPort<T> input = new DefaultInputPort<T>()
+  /*
+   * input port
+   */
+  public final transient DefaultInputPort<INPUT> input = new DefaultInputPort<INPUT>()
   {
     @Override
-    public void process(T t)
+    public void process(INPUT t)
     {
-      //dataStore.insert(t);
       processTuple(t);
     }
+
   };
-
-  //public void setTable(String tableName)
-  //{
-  //  this.tableName = tableName;
-  //}
-
-  public void setDataStore(DataStoreWriter<T> dataStore)
-  {
-    this.dataStore = dataStore;
-  }
 
   @Override
   public void setup(OperatorContext context)
   {
     try {
-      dataStore.connect();
+      dataStoreWriter.connect();
     }
     catch (IOException ex) {
       throw new RuntimeException(ex);
@@ -60,15 +80,21 @@ public class DataStoreOutputOperator<T> extends BaseOperator
   public void teardown()
   {
     try {
-      dataStore.disconnect();
+      dataStoreWriter.disconnect();
     }
     catch (IOException ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  private void processTuple(T t) {
-    cache.add(t);
+  /**
+   * converts input tuple type to output tuple type and caches them
+   *
+   * @param t input tuple
+   */
+  private void processTuple(INPUT t)
+  {
+    cache.add(converter.convert(t));
   }
 
   @Override
@@ -81,6 +107,28 @@ public class DataStoreOutputOperator<T> extends BaseOperator
   @Override
   public void endWindow()
   {
-    dataStore.batchInsert(cache, currentWindowId);
+    // write to db
+    dataStoreWriter.batchInsert(cache, currentWindowId);
   }
+
+  /**
+   * Supply the writer to write the data to the db
+   *
+   * @param dataStoreWriter
+   */
+  public void setDataStoreWriter(DataStoreWriter<OUTPUT> dataStoreWriter)
+  {
+    this.dataStoreWriter = dataStoreWriter;
+  }
+
+  /**
+   * Supply the converter to convert the input type to output type
+   *
+   * @param converter type converter
+   */
+  public void setConverter(Converter<INPUT, OUTPUT> converter)
+  {
+    this.converter = converter;
+  }
+
 }
