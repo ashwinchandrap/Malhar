@@ -45,7 +45,6 @@ public abstract class AbstractStoreOutputOperator<T, S extends Connectable> exte
     {
       processTuple(t);
     }
-
   };
 
   /**
@@ -78,17 +77,13 @@ public abstract class AbstractStoreOutputOperator<T, S extends Connectable> exte
   }
 
   @Override
-  public void beginWindow(long windowId)
-  {
-  }
-
-  @Override
   public void teardown()
   {
     try {
       store.disconnect();
     }
     catch (IOException ex) {
+      throw new RuntimeException(ex);
     }
   }
 
