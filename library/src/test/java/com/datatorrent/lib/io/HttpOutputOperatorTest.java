@@ -37,7 +37,7 @@ import javax.ws.rs.Consumes;
 import javax.ws.rs.core.MediaType;
 
 /**
- * Functional test for {@link com.datatorrent.lib.io.HttpOutputOperator}.
+ * Functional test for {@link com.datatorrent.lib.io.HttpPostOutputOperator}.
  */
 public class HttpOutputOperatorTest {
 
@@ -72,8 +72,9 @@ public class HttpOutputOperatorTest {
     System.out.println("url: " + url);
 
 
-    HttpOutputOperator<Object> node = new HttpOutputOperator<Object>();
-    node.setResourceURL(new URI(url));
+    HttpPostOutputOperator<Object> node = new HttpPostOutputOperator<Object>();
+    //node.setResourceURL(new URI(url));
+    node.setUrl(url);
 
     node.setup(null);
 

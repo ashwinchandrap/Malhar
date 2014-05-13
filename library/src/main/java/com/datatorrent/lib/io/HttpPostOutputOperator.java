@@ -43,56 +43,16 @@ import com.datatorrent.api.annotation.ShipContainingJars;
  * @param <T>
  * @since 0.3.2
  */
-@ShipContainingJars(classes = {com.sun.jersey.api.client.ClientHandler.class})
-public class HttpOutputOperator<T> extends BaseOperator
+public class HttpPostOutputOperator<T> extends AbstractHttpOperator<T>
 {
-  private static final Logger LOG = LoggerFactory.getLogger(HttpOutputOperator.class);
-
-  public final transient DefaultInputPort<T> input = new DefaultInputPort<T>()
-  {
-    @Override
-    public void process(T t)
-    {
-      if (t instanceof Map) {
-        resource.type(MediaType.APPLICATION_JSON).post(new JSONObject((Map<?, ?>)t).toString());
-      }
-      else {
-        resource.post(t.toString());
-      }
-    }
-  };
-
-  /**
-   * The URL of the web service resource for the POST request.
-   */
-  @NotNull
-  private URI resourceUrl;
-  private transient Client wsClient;
-  private transient WebResource resource;
-
-  public void setResourceURL(URI url)
-  {
-    if (!url.isAbsolute()) {
-      throw new IllegalArgumentException("URL is not absolute: " + url);
-    }
-    this.resourceUrl = url;
-  }
-
   @Override
-  public void setup(OperatorContext context)
+  protected void processTuple(T t)
   {
-    wsClient = Client.create();
-    wsClient.setFollowRedirects(true);
-    resource = wsClient.resource(resourceUrl); // side step "not absolute URL" after serialization
-    LOG.info("URL: {}", resourceUrl);
-  }
-
-  @Override
-  public void teardown()
-  {
-    if (wsClient != null) {
-      wsClient.destroy();
+    if (t instanceof Map) {
+      resource.type(MediaType.APPLICATION_JSON).post(new JSONObject((Map<?, ?>)t).toString());
     }
-    super.teardown();
+    else {
+      resource.post(t.toString());
+    }
   }
 }
