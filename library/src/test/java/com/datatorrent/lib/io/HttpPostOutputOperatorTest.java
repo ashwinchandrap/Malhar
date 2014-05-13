@@ -39,7 +39,7 @@ import javax.ws.rs.core.MediaType;
 /**
  * Functional test for {@link com.datatorrent.lib.io.HttpPostOutputOperator}.
  */
-public class HttpOutputOperatorTest {
+public class HttpPostOutputOperatorTest {
 
   boolean receivedMessage = false;
 
