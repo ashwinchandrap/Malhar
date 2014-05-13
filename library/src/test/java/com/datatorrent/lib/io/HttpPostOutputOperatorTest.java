@@ -73,7 +73,6 @@ public class HttpPostOutputOperatorTest {
 
 
     HttpPostOutputOperator<Object> node = new HttpPostOutputOperator<Object>();
-    //node.setResourceURL(new URI(url));
     node.setUrl(url);
 
     node.setup(null);
