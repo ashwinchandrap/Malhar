@@ -20,7 +20,7 @@ import java.net.URI;
 import org.apache.hadoop.conf.Configuration;
 
 import com.datatorrent.lib.io.ConsoleOutputOperator;
-import com.datatorrent.lib.io.HttpOutputOperator;
+import com.datatorrent.lib.io.HttpPostOutputOperator;
 import com.datatorrent.lib.math.*;
 import com.datatorrent.lib.stream.AbstractAggregator;
 import com.datatorrent.lib.stream.ArrayListAggregator;
@@ -51,9 +51,9 @@ public class Calculator implements StreamingApplication
       oper.setStringFormat(name + ": %s");
       return oper.input;
     }
-    HttpOutputOperator<Object> oper = b.addOperator(name, new HttpOutputOperator<Object>());
-    URI u = URI.create("http://" + serverAddr + "/channel/" + name);
-    oper.setResourceURL(u);
+    HttpPostOutputOperator<Object> oper = b.addOperator(name, new HttpPostOutputOperator<Object>());
+    String url = "http://" + serverAddr + "/channel/" + name;
+    oper.setUrl(url);
     return oper.input;
   }
 
