@@ -15,21 +15,18 @@
  */
 package com.datatorrent.lib.io;
 
-import com.datatorrent.api.DefaultOutputPort;
-import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
-import java.io.BufferedReader;
-import java.io.StringReader;
-import java.util.Map;
-import javax.ws.rs.core.MultivaluedMap;
+
+import com.datatorrent.api.DefaultOutputPort;
+import com.datatorrent.api.annotation.OutputPortFieldAnnotation;
 
 /**
  * Http get operator to extract query parameters from incoming tuple and make GET calls to
  * the set url.
  *
  * If the output port is connected, the response is processed
- * 
+ *
  * @param <INPUT> tuple type of input port
  * @param <OUTPUT> tuple type of output port
  */
@@ -54,4 +51,5 @@ public abstract class AbstractHttpGetOperator<INPUT, OUTPUT> extends AbstractHtt
   protected abstract WebResource getResourceWithQueryParams(INPUT t);
 
   protected abstract void processResponse(ClientResponse response);
+
 }

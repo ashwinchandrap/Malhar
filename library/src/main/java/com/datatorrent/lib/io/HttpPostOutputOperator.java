@@ -15,23 +15,12 @@
  */
 package com.datatorrent.lib.io;
 
-import java.net.URI;
 import java.util.Map;
 
-import javax.validation.constraints.NotNull;
 import javax.ws.rs.core.MediaType;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.WebResource;
 
 import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.datatorrent.api.BaseOperator;
-import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.api.DefaultInputPort;
-import com.datatorrent.api.annotation.ShipContainingJars;
 
 /**
  *
@@ -55,4 +44,6 @@ public class HttpPostOutputOperator<T> extends AbstractHttpOperator<T>
       resource.post(t.toString());
     }
   }
+
+  private static final long serialVersionUID = 201405151144L;
 }

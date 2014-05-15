@@ -15,23 +15,23 @@
  */
 package com.datatorrent.lib.io;
 
+import javax.validation.constraints.NotNull;
+
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.WebResource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.annotation.ShipContainingJars;
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.WebResource;
-import java.net.URI;
-import java.util.Map;
-import javax.validation.constraints.NotNull;
-import javax.ws.rs.core.MediaType;
-import org.codehaus.jettison.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Abstract http operator that creates client at setup and destroy at teardown
  * and provides the process tuple method to be implemented to process each incoming tuple
+ * @param <T> 
  */
 @ShipContainingJars(classes = {com.sun.jersey.api.client.ClientHandler.class})
 public abstract class AbstractHttpOperator<T> extends BaseOperator
@@ -40,7 +40,6 @@ public abstract class AbstractHttpOperator<T> extends BaseOperator
   protected String url;
   protected transient Client wsClient;
   protected transient WebResource resource;
-
   public final transient DefaultInputPort<T> input = new DefaultInputPort<T>()
   {
     @Override
@@ -48,6 +47,7 @@ public abstract class AbstractHttpOperator<T> extends BaseOperator
     {
       processTuple(t);
     }
+
   };
 
   protected abstract void processTuple(T t);

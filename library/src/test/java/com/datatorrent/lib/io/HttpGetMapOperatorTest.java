@@ -20,14 +20,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
@@ -113,4 +110,5 @@ public class HttpGetMapOperatorTest
     Assert.assertEquals("emitted size", 1, sink.collectedTuples.size());
     Assert.assertEquals("emitted tuples", KEY1, ((String)sink.collectedTuples.get(0)).trim());
   }
+
 }
