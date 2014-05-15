@@ -33,7 +33,7 @@ import javax.ws.rs.core.MultivaluedMap;
  * @param <INPUT> tuple type of input port
  * @param <OUTPUT> tuple type of output port
  */
-public abstract class HttpGetOperator<INPUT, OUTPUT> extends AbstractHttpOperator<INPUT>
+public abstract class AbstractHttpGetOperator<INPUT, OUTPUT> extends AbstractHttpOperator<INPUT>
 {
   @OutputPortFieldAnnotation(name = "output", optional = true)
   public final transient DefaultOutputPort<OUTPUT> output = new DefaultOutputPort<OUTPUT>();

@@ -39,13 +39,17 @@ import org.junit.Test;
 import com.datatorrent.lib.testbench.CollectorTestSink;
 
 /**
- * Tests the {@link HttpGetOperator} for sending get requests to specified url
+ * Tests the {@link HttpGetMapOperator} for sending get requests to specified url
  * and processing responses if output port is connected
  */
-public class HttpGetOperatorTest
+public class HttpGetMapOperatorTest
 {
   private final String KEY1 = "key1";
   private final String KEY2 = "key2";
+  private final String VAL1 = "val1";
+  private final String VAL2 = "val2";
+  private final String VAL3 = "val3";
+  private final String VAL4 = "val4";
 
   @Test
   @SuppressWarnings("unchecked")
@@ -72,24 +76,24 @@ public class HttpGetOperatorTest
 
     String url = "http://localhost:" + server.getConnectors()[0].getLocalPort() + "/context";
 
-    TestGetOperator operator = new TestGetOperator();
+    HttpGetMapOperator<String, String> operator = new HttpGetMapOperator<String, String>();
     operator.setUrl(url);
     operator.setup(null);
 
     Map<String, String> data = new HashMap<String, String>();
-    data.put(KEY1, "1");
+    data.put(KEY1, VAL1);
     operator.input.process(data);
 
     data.clear();
-    data.put(KEY1, "2");
-    data.put(KEY2, "3");
+    data.put(KEY1, VAL2);
+    data.put(KEY2, VAL3);
     operator.input.process(data);
 
     CollectorTestSink sink = new CollectorTestSink();
     operator.output.setSink(sink);
 
     data.clear();
-    data.put("key1", "4");
+    data.put("key1", VAL4);
     operator.input.process(data);
 
     long startTms = System.currentTimeMillis();
@@ -100,37 +104,13 @@ public class HttpGetOperatorTest
     }
 
     Assert.assertEquals("request count", 3, receivedRequests.size());
-    Assert.assertEquals("parameter value", "1", receivedRequests.get(0).get(KEY1)[0]);
+    Assert.assertEquals("parameter value", VAL1, receivedRequests.get(0).get(KEY1)[0]);
     Assert.assertNull("parameter value", receivedRequests.get(0).get(KEY2));
-    Assert.assertEquals("parameter value", "2", receivedRequests.get(1).get(KEY1)[0]);
-    Assert.assertEquals("parameter value", "3", receivedRequests.get(1).get(KEY2)[0]);
-    Assert.assertEquals("parameter value", "4", receivedRequests.get(2).get(KEY1)[0]);
+    Assert.assertEquals("parameter value", VAL2, receivedRequests.get(1).get(KEY1)[0]);
+    Assert.assertEquals("parameter value", VAL3, receivedRequests.get(1).get(KEY2)[0]);
+    Assert.assertEquals("parameter value", VAL4, receivedRequests.get(2).get(KEY1)[0]);
 
     Assert.assertEquals("emitted size", 1, sink.collectedTuples.size());
     Assert.assertEquals("emitted tuples", KEY1, ((String)sink.collectedTuples.get(0)).trim());
   }
-
-  public class TestGetOperator extends HttpGetOperator<Map<String, String>, String>
-  {
-    @Override
-    protected WebResource getResourceWithQueryParams(Map<String, String> t)
-    {
-      WebResource wr = wsClient.resource(url);
-
-      for (Entry<String, String> entry : t.entrySet()) {
-        wr = wr.queryParam(entry.getKey(), entry.getValue());
-      }
-
-      return wr;
-    }
-
-    @Override
-    protected void processResponse(ClientResponse response)
-    {
-      output.emit(response.getEntity(String.class));
-    }
-
-    private static final long serialVersionUID = 201405121822L;
-  }
-
 }
