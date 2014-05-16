@@ -25,9 +25,11 @@ import com.datatorrent.api.Context;
 import com.datatorrent.api.DefaultOutputPort;
 
 /**
+ * Hdfs file output operator that writes the data from the tuple to the file supplied in the tuple.
  *
- * @param <INPUT>
- * @param <OUTPUT>
+ * If output port is connected, it sends the output to the output port.
+ * @param <INPUT> type of incoming tuple
+ * @param <OUTPUT> type of outgoing tuple
  */
 public abstract class AbstractHdfsTupleFileOutputOperator<INPUT, OUTPUT> extends AbstractHdfsFileOutputOperator<INPUT>
 {

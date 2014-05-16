@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,11 +29,11 @@ import org.apache.hadoop.fs.Path;
 import com.datatorrent.api.BaseOperator;
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DefaultInputPort;
-import org.apache.hadoop.conf.Configuration;
 
 /**
  * Base class for HDFS file output operators.
  * Contains base implementations for setup, teardown, open file and close file.
+ *
  * @param <INPUT> incoming tuple type
  */
 public abstract class AbstractHdfsFileOutputOperator<INPUT> extends BaseOperator
@@ -47,7 +48,6 @@ public abstract class AbstractHdfsFileOutputOperator<INPUT> extends BaseOperator
   protected int bufferSize = 0;
   protected int bytesPerFile = 0;
   protected int replication = 0;
-
   public final transient DefaultInputPort<INPUT> input = new DefaultInputPort<INPUT>()
   {
     @Override
@@ -60,6 +60,7 @@ public abstract class AbstractHdfsFileOutputOperator<INPUT> extends BaseOperator
 
   /**
    * Function to be implemented to process each incoming tuple
+   *
    * @param t incoming tuple
    */
   protected abstract void processTuple(INPUT t);

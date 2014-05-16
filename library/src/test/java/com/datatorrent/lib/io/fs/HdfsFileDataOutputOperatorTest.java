@@ -17,15 +17,15 @@ package com.datatorrent.lib.io.fs;
 
 import java.io.*;
 import java.util.Calendar;
-import junit.framework.Assert;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.datatorrent.lib.helper.OperatorContextTestHelper;
 import com.datatorrent.lib.io.fs.HdfsFileDataOutputOperator.FileData;
 
 /**
- *
+ * Functional test for {@link HdfsFileDataOutputOperator}
  */
 public class HdfsFileDataOutputOperatorTest
 {
@@ -58,10 +58,6 @@ public class HdfsFileDataOutputOperatorTest
     oper.input.process(fileData3);
 
     oper.endWindow();
-    //oper.beginWindow(1);
-    //oper.input.process(new MyStringClass("test"));
-    //oper.input.process(new MyStringClass("test"));
-    //oper.endWindow();
     oper.teardown();
     Assert.assertEquals("The number of lines in file target/file-0-0", 1, readFile("target/file1", "data2"));
     Assert.assertEquals("The number of lines in file target/file-0-1", 1, readFile("target/file2", "data2"));

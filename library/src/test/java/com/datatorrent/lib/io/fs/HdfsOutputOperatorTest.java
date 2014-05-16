@@ -24,25 +24,24 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import junit.framework.Assert;
+import org.junit.Assert;
+import org.junit.Test;
 
 import org.apache.commons.lang.text.StrSubstitutor;
 import org.apache.hadoop.fs.Path;
-import org.junit.Test;
+
+import com.datatorrent.lib.helper.OperatorContextTestHelper;
 
 import com.datatorrent.api.Context.OperatorContext;
-import com.datatorrent.lib.helper.OperatorContextTestHelper;
 
 /**
  * This tests the HdfsOutput Operator.
- * 
+ *
  */
 public class HdfsOutputOperatorTest
 {
-
   static class MyStringClass implements HdfsOutputTupleInterface
   {
-
     String str;
 
     public MyStringClass(String str)
@@ -55,11 +54,11 @@ public class HdfsOutputOperatorTest
     {
       return (str + "\n").getBytes();
     }
+
   }
 
   static class HdfsOutputOperator extends AbstractTupleHDFSOutputOperator<MyStringClass>
   {
-
     /**
      * File name substitution parameter: The logical id assigned to the operator when assembling the DAG.
      */
@@ -68,7 +67,6 @@ public class HdfsOutputOperatorTest
      * File name substitution parameter: Index of part file when a file size limit is specified.
      */
     public static final String FNAME_SUB_PART_INDEX = "partIndex";
-
     private int operatorId;
     private int index = 0;
 
@@ -89,6 +87,7 @@ public class HdfsOutputOperatorTest
       operatorId = context.getId();
       super.setup(context);
     }
+
   }
 
   private int readFile(String path, final String val)
@@ -105,13 +104,16 @@ public class HdfsOutputOperatorTest
         count++;
       }
       return count;
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       return -1;
-    } finally {
+    }
+    finally {
       if (br != null) {
         try {
           br.close();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
         }
       }
     }
@@ -207,7 +209,8 @@ public class HdfsOutputOperatorTest
     oper.endWindow();
     try {
       oper.beginWindow(1);
-    } catch (Exception e) {
+    }
+    catch (Exception e) {
       Assert.assertEquals("Exception", "Rolling files require %() placeholders for unique names: target/file", e.getMessage());
     }
     oper.teardown();
@@ -215,4 +218,5 @@ public class HdfsOutputOperatorTest
     Assert.assertEquals("Checking the file target/file", true, checkFile("target/file"));
 
   }
+
 }

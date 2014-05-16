@@ -17,10 +17,7 @@ package com.datatorrent.lib.io.fs;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import com.datatorrent.api.Context.OperatorContext;
 
 /**
  * Adapter for writing to HDFS
@@ -32,7 +29,7 @@ import com.datatorrent.api.Context.OperatorContext;
  * are place holders.
  * </p>
  *
- * @param <T>
+ * @param <T> input port tuple type
  * @since 0.9.4
  */
 public abstract class AbstractHdfsRollingFileOutputOperator<T> extends AbstractHdfsFileOutputOperator<T>
