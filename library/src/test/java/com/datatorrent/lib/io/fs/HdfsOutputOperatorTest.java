@@ -80,7 +80,7 @@ public class HdfsOutputOperatorTest
       params.put(FNAME_SUB_OPERATOR_ID, Integer.toString(operatorId));
       StrSubstitutor sub = new StrSubstitutor(params, "%(", ")");
       index++;
-      return new Path(sub.replace(getFilePathPattern().toString()));
+      return new Path(sub.replace(getFilePath().toString()));
     }
 
     @Override
@@ -131,7 +131,7 @@ public class HdfsOutputOperatorTest
   public void TestSeparateFilesEachWindow()
   {
     HdfsOutputOperator oper = new HdfsOutputOperator();
-    oper.setFilePathPattern("target/file-%(operatorId)-%(partIndex)");
+    oper.setFilePath("target/file-%(operatorId)-%(partIndex)");
     oper.setCloseCurrentFile(true);
     oper.setAppend(false);
     oper.setup(new OperatorContextTestHelper.TestIdOperatorContext(0));
@@ -154,7 +154,7 @@ public class HdfsOutputOperatorTest
   public void TestSameFilesEachWindowWithReplacablePattern()
   {
     HdfsOutputOperator oper = new HdfsOutputOperator();
-    oper.setFilePathPattern("target/file-%(operatorId)-%(partIndex)");
+    oper.setFilePath("target/file-%(operatorId)-%(partIndex)");
     oper.setCloseCurrentFile(false);
     oper.setAppend(true);
     oper.setup(new OperatorContextTestHelper.TestIdOperatorContext(0));
@@ -176,7 +176,7 @@ public class HdfsOutputOperatorTest
   public void TestSameFilesEachWindow()
   {
     HdfsOutputOperator oper = new HdfsOutputOperator();
-    oper.setFilePathPattern("target/file");
+    oper.setFilePath("target/file");
     oper.setCloseCurrentFile(false);
     oper.setAppend(true);
     oper.setup(new OperatorContextTestHelper.TestIdOperatorContext(0));
@@ -197,7 +197,7 @@ public class HdfsOutputOperatorTest
   public void TestSeparateFilesEachWindowFailure()
   {
     HdfsOutputOperator oper = new HdfsOutputOperator();
-    oper.setFilePathPattern("target/file");
+    oper.setFilePath("target/file");
     oper.setCloseCurrentFile(true);
     oper.setAppend(false);
     oper.setup(new OperatorContextTestHelper.TestIdOperatorContext(0));
