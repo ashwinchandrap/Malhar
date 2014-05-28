@@ -38,13 +38,13 @@ public abstract class AbstractHttpGetOperator<INPUT, OUTPUT> extends AbstractHtt
   @Override
   protected void processTuple(INPUT t)
   {
-    WebResource ws = getResourceWithQueryParams(t);
+    WebResource wr = getResourceWithQueryParams(t);
     if (output.isConnected()) {
-      ClientResponse response = ws.get(ClientResponse.class);
+      ClientResponse response = wr.get(ClientResponse.class);
       processResponse(response);
     }
     else {
-      ws.get(ClientResponse.class);
+      wr.get(ClientResponse.class);
     }
   }
 

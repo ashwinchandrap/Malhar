@@ -15,6 +15,8 @@
  */
 package com.datatorrent.lib.io;
 
+import com.datatorrent.api.Context.OperatorContext;
+import com.sun.jersey.api.client.WebResource;
 import java.util.Map;
 
 import javax.ws.rs.core.MediaType;
@@ -34,6 +36,8 @@ import org.codehaus.jettison.json.JSONObject;
  */
 public class HttpPostOutputOperator<T> extends AbstractHttpOperator<T>
 {
+  protected transient WebResource resource;
+
   @Override
   protected void processTuple(T t)
   {
@@ -43,6 +47,13 @@ public class HttpPostOutputOperator<T> extends AbstractHttpOperator<T>
     else {
       resource.post(t.toString());
     }
+  }
+
+  @Override
+  public void setup(OperatorContext context)
+  {
+    super.setup(context);
+    resource = wsClient.resource(url);
   }
 
   private static final long serialVersionUID = 201405151144L;

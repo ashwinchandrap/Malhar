@@ -31,7 +31,7 @@ import com.datatorrent.api.annotation.ShipContainingJars;
 /**
  * Abstract http operator that creates client at setup and destroy at teardown
  * and provides the process tuple method to be implemented to process each incoming tuple
- * @param <T> 
+ * @param <T>
  */
 @ShipContainingJars(classes = {com.sun.jersey.api.client.ClientHandler.class})
 public abstract class AbstractHttpOperator<T> extends BaseOperator
@@ -39,7 +39,6 @@ public abstract class AbstractHttpOperator<T> extends BaseOperator
   @NotNull
   protected String url;
   protected transient Client wsClient;
-  protected transient WebResource resource;
   public final transient DefaultInputPort<T> input = new DefaultInputPort<T>()
   {
     @Override
@@ -57,8 +56,7 @@ public abstract class AbstractHttpOperator<T> extends BaseOperator
   {
     wsClient = Client.create();
     wsClient.setFollowRedirects(true);
-    resource = wsClient.resource(url);
-    logger.info("URL: {}", url);
+    logger.debug("URL: {}", url);
   }
 
   @Override

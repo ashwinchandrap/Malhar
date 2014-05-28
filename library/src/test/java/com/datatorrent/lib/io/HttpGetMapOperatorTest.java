@@ -25,7 +25,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -77,6 +76,9 @@ public class HttpGetMapOperatorTest
     operator.setUrl(url);
     operator.setup(null);
 
+    CollectorTestSink sink = new CollectorTestSink();
+    operator.output.setSink(sink);
+
     Map<String, String> data = new HashMap<String, String>();
     data.put(KEY1, VAL1);
     operator.input.process(data);
@@ -85,9 +87,6 @@ public class HttpGetMapOperatorTest
     data.put(KEY1, VAL2);
     data.put(KEY2, VAL3);
     operator.input.process(data);
-
-    CollectorTestSink sink = new CollectorTestSink();
-    operator.output.setSink(sink);
 
     data.clear();
     data.put("key1", VAL4);
@@ -107,7 +106,7 @@ public class HttpGetMapOperatorTest
     Assert.assertEquals("parameter value", VAL3, receivedRequests.get(1).get(KEY2)[0]);
     Assert.assertEquals("parameter value", VAL4, receivedRequests.get(2).get(KEY1)[0]);
 
-    Assert.assertEquals("emitted size", 1, sink.collectedTuples.size());
+    Assert.assertEquals("emitted size", 3, sink.collectedTuples.size());
     Assert.assertEquals("emitted tuples", KEY1, ((String)sink.collectedTuples.get(0)).trim());
   }
 
