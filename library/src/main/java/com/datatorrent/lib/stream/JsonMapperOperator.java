@@ -16,6 +16,8 @@ import com.datatorrent.api.DefaultOutputPort;
 
 /**
  *
+ * @param <INPUT>
+ * @param <OUTPUT>
  */
 public class JsonMapperOperator<INPUT, OUTPUT> extends BaseOperator
 {

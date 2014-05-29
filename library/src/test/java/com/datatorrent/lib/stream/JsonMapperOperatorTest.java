@@ -22,10 +22,9 @@ import org.junit.Assert;
 public class JsonMapperOperatorTest
 {
   @Test
-  public void testJsonToObject() throws IOException {
+  public void testJsonToHashMap() throws IOException
+  {
     JsonMapperOperator<String, MyPojo> oper = new JsonMapperOperator<String, MyPojo>();
-
-    //oper.setOutputClassName("com.datatorrent.lib.stream.JsonMapperOperatorTest.MyPojo.class");
 
     oper.setup(null);
     CollectorTestSink objectSink = new CollectorTestSink();
@@ -54,18 +53,55 @@ public class JsonMapperOperatorTest
     Assert.assertEquals("number emitted tuples", numtuples, objectSink.collectedTuples.size());
 
     // assert that value for one of the keys in any one of the objects from mapSink is as expected
-    /*
-    MyPojo obj = (MyPojo)objectSink.collectedTuples.get(510);
-    Assert.assertEquals("emitted tuple", "country", obj.getName());
-    Assert.assertEquals("emitted tuple", "usa", obj.getValue());
-    */
     HashMap<String, String> obj = (HashMap<String, String>)objectSink.collectedTuples.get(510);
     Assert.assertEquals("emitted tuple", "country", obj.get("name"));
     Assert.assertEquals("emitted tuple", "usa", obj.get("value"));
   }
 
   @Test
-  public void testObjectToJson() throws IOException {
+  public void testJsonToObject() throws IOException
+  {
+    JsonMapperOperator<String, MyPojo> oper = new JsonMapperOperator<String, MyPojo>();
+
+    oper.setOutputClassName("com.datatorrent.lib.stream.JsonMapperOperatorTest$MyPojo");
+
+    oper.setup(null);
+    CollectorTestSink objectSink = new CollectorTestSink();
+    oper.output.setSink(objectSink);
+
+    ObjectMapper mapper = new ObjectMapper(new JsonFactory());
+
+    oper.beginWindow(0);
+
+    MyPojo pojo1 = new MyPojo();
+    pojo1.setName("country");
+    pojo1.setValue("usa");
+
+    // input test json string
+    String inputJson = mapper.writeValueAsString(pojo1);
+
+    // run the operator for the same string 1000 times
+    int numtuples = 1000;
+    for (int i = 0; i < numtuples; i++) {
+      oper.input.process(inputJson);
+    }
+
+    oper.endWindow();
+
+    // assert that the number of the operator generates is 1000
+    Assert.assertEquals("number emitted tuples", numtuples, objectSink.collectedTuples.size());
+
+    // assert that value for one of the keys in any one of the objects from mapSink is as expected
+
+    MyPojo obj = (MyPojo)objectSink.collectedTuples.get(510);
+    Assert.assertEquals("emitted tuple", "country", obj.getName());
+    Assert.assertEquals("emitted tuple", "usa", obj.getValue());
+
+  }
+
+  @Test
+  public void testObjectToJson() throws IOException
+  {
     JsonMapperOperator<MyPojo, String> oper = new JsonMapperOperator<MyPojo, String>();
     oper.setup(null);
 
@@ -133,5 +169,7 @@ public class JsonMapperOperatorTest
     {
       return "MyPojo{" + "name=" + name + ", value=" + value + '}';
     }
+
   }
+
 }
