@@ -1,28 +1,37 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.lib.stream;
 
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.datatorrent.lib.testbench.CollectorTestSink;
 import java.io.IOException;
 import java.util.HashMap;
+
 import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Assert;
+import org.junit.Test;
+
+import com.datatorrent.lib.testbench.CollectorTestSink;
 
 /**
- *
- * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
+ * Tests {@link JsonMapperOperator}
  */
 public class JsonMapperOperatorTest
 {
   @Test
-  public void testJsonToHashMap() throws IOException
+  public void testJsonStringToHashMap() throws IOException
   {
     JsonMapperOperator<String, MyPojo> oper = new JsonMapperOperator<String, MyPojo>();
 
@@ -49,7 +58,44 @@ public class JsonMapperOperatorTest
 
     oper.endWindow();
 
-    // assert that the number of the operator generates is 1000
+    // assert that the number of the tuples operator generates is 1000
+    Assert.assertEquals("number emitted tuples", numtuples, objectSink.collectedTuples.size());
+
+    // assert that value for one of the keys in any one of the objects from mapSink is as expected
+    HashMap<String, String> obj = (HashMap<String, String>)objectSink.collectedTuples.get(510);
+    Assert.assertEquals("emitted tuple", "country", obj.get("name"));
+    Assert.assertEquals("emitted tuple", "usa", obj.get("value"));
+  }
+
+  @Test
+  public void testJsonByteArrayToHashMap() throws IOException
+  {
+    JsonMapperOperator<byte[], MyPojo> oper = new JsonMapperOperator<byte[], MyPojo>();
+
+    oper.setup(null);
+    CollectorTestSink objectSink = new CollectorTestSink();
+    oper.output.setSink(objectSink);
+
+    ObjectMapper mapper = new ObjectMapper(new JsonFactory());
+
+    oper.beginWindow(0);
+
+    MyPojo pojo1 = new MyPojo();
+    pojo1.setName("country");
+    pojo1.setValue("usa");
+
+    // input test json string
+    byte[] inputJson = mapper.writeValueAsString(pojo1).getBytes();
+
+    // run the operator for the same string 1000 times
+    int numtuples = 1000;
+    for (int i = 0; i < numtuples; i++) {
+      oper.input.process(inputJson);
+    }
+
+    oper.endWindow();
+
+    // assert that the number of the tuples operator generates is 1000
     Assert.assertEquals("number emitted tuples", numtuples, objectSink.collectedTuples.size());
 
     // assert that value for one of the keys in any one of the objects from mapSink is as expected

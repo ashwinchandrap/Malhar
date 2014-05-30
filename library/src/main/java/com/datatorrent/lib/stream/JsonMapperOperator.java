@@ -1,6 +1,17 @@
 /*
- *  Copyright (c) 2012-2014 Malhar, Inc.
- *  All Rights Reserved.
+ * Copyright (c) 2014 DataTorrent, Inc. ALL Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.datatorrent.lib.stream;
 
@@ -15,14 +26,19 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 
 /**
+ * If incoming tuple is JSON String or byte array, the operator converts the tuple to
+ * java object and emits, else it converts the incoming object tuple to JSON String and emits.
  *
- * @param <INPUT>
- * @param <OUTPUT>
+ * @param <INPUT> input tuple
+ * @param <OUTPUT> output tuple
  */
 public class JsonMapperOperator<INPUT, OUTPUT> extends BaseOperator
 {
   private transient ObjectMapper mapper;
   private transient Class<OUTPUT> outputClass;
+  /*
+   * fully qualified class name of the output class for converting in case incoming tuple is json string or byte array
+   */
   private String outputClassName = "java.util.HashMap"; // default output class
   public final transient DefaultOutputPort<OUTPUT> output = new DefaultOutputPort<OUTPUT>();
   public final transient DefaultInputPort<INPUT> input = new DefaultInputPort<INPUT>()
@@ -30,22 +46,27 @@ public class JsonMapperOperator<INPUT, OUTPUT> extends BaseOperator
     @Override
     public void process(INPUT input)
     {
-      if (input instanceof String || input instanceof byte[]) {
-        convertToObject(input.toString());
+      OUTPUT out;
+      if (input instanceof String) {
+        out = convertToObject((String)input);
+      }
+      else if (input instanceof byte[]) {
+        out = convertToObject(new String((byte[])input));
       }
       else {
-        convertToJson(input);
+        out = convertToJson(input);
       }
+      output.emit(out);
     }
 
   };
 
   @SuppressWarnings("unchecked")
-  private void convertToObject(String input)
+  private OUTPUT convertToObject(String input)
   {
     try {
       OUTPUT readValue = mapper.readValue(input, outputClass);
-      output.emit(readValue);
+      return readValue;
     }
     catch (Exception ex) {
       throw new RuntimeException(ex);
@@ -53,11 +74,11 @@ public class JsonMapperOperator<INPUT, OUTPUT> extends BaseOperator
   }
 
   @SuppressWarnings("unchecked")
-  private void convertToJson(INPUT input)
+  private OUTPUT convertToJson(INPUT input)
   {
     try {
       String jsonString = mapper.writeValueAsString(input);
-      output.emit((OUTPUT)jsonString);
+      return (OUTPUT)jsonString;
     }
     catch (Exception ex) {
       throw new RuntimeException(ex);
@@ -82,6 +103,9 @@ public class JsonMapperOperator<INPUT, OUTPUT> extends BaseOperator
     return outputClassName;
   }
 
+  /*
+   * Set the fully qualified class name of the object to which json string has to be converted
+   */
   public void setOutputClassName(String outputClassName)
   {
     this.outputClassName = outputClassName;
