@@ -39,20 +39,17 @@ public class HdfsFileDataOutputOperatorTest
     oper.beginWindow(0);
     FileData fileData1 = new FileData();
     fileData1.info.name = "file1";
-    fileData1.info.date = Calendar.getInstance().getTime();
     fileData1.data = "data1";
 
     oper.input.process(fileData1);
 
     FileData fileData2 = new FileData();
     fileData2.info.name = "file2";
-    fileData2.info.date = Calendar.getInstance().getTime();
     fileData2.data = "data2";
     oper.input.process(fileData2);
 
     FileData fileData3 = new FileData();
     fileData3.info.name = "file1";
-    fileData3.info.date = Calendar.getInstance().getTime();
     fileData3.data = "data2";
 
     oper.input.process(fileData3);

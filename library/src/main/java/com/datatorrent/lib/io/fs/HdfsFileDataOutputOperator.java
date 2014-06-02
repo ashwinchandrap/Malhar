@@ -48,7 +48,6 @@ public class HdfsFileDataOutputOperator extends AbstractHdfsTupleFileOutputOpera
     public static class FileInfo
     {
       public String name;
-      public Date date;
     }
 
     public FileInfo info = new FileInfo();
