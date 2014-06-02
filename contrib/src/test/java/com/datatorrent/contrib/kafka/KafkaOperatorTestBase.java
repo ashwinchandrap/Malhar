@@ -19,10 +19,12 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Properties;
-import kafka.admin.CreateTopicCommand;
+
+import kafka.admin.TopicCommand;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;
 import kafka.utils.Utils;
+
 import org.apache.zookeeper.server.NIOServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
 import org.junit.After;
@@ -30,40 +32,42 @@ import org.junit.Before;
 import org.slf4j.LoggerFactory;
 
 /**
- * This is a base class setup/clean Kafka testing environment for all the input/output test 
+ * This is a base class setup/clean Kafka testing environment for all the input/output test
  * If it's a multipartition test, this class creates 2 kafka partitions
  */
 public class KafkaOperatorTestBase
 {
-  
+
   public static final String END_TUPLE = "END_TUPLE";
   public static final int TEST_ZOOKEEPER_PORT =  2182;
   public static final int TEST_KAFKA_BROKER1_PORT =  9092;
   public static final int TEST_KAFKA_BROKER2_PORT =  9093;
   public static final String TEST_TOPIC = "test_topic";
-  
+
   static final org.slf4j.Logger logger = LoggerFactory.getLogger(KafkaOperatorTestBase.class);
   // since Kafka 0.8 use KafkaServerStatble instead of KafkaServer
   private KafkaServerStartable kserver;
   // it wont be initialized unless hasMultiPartition is set to true
   private KafkaServerStartable kserver2;
   private NIOServerCnxnFactory standaloneServerFactory;
-  private final String zklogdir = "/tmp/zookeeper-server-data";
-  private final String kafkalogdir = "/tmp/kafka-server-data";
-  private final String kafkalogdir2 = "/tmp/kafka-server-data2";
-  protected boolean hasMultiPartition = false; 
-  
-  
+
+  public String baseDir = "/tmp";
+
+  private final String zkdir = "zookeeper-server-data";
+  private final String kafkadir1 = "kafka-server-data1";
+  private final String kafkadir2 = "kafka-server-data2";
+  protected boolean hasMultiPartition = false;
+
+
   public void startZookeeper()
   {
-  
+
     try {
       int clientPort = TEST_ZOOKEEPER_PORT;
       int numConnections = 10;
       int tickTime = 2000;
-      File dir = new File(zklogdir);
-        
-  
+      File dir = new File(baseDir, zkdir);
+
       ZooKeeperServer kserver = new ZooKeeperServer(dir, dir, tickTime);
       standaloneServerFactory = new NIOServerCnxnFactory();
       standaloneServerFactory.configure(new InetSocketAddress(clientPort), numConnections);
@@ -81,14 +85,14 @@ public class KafkaOperatorTestBase
   public void stopZookeeper()
   {
     standaloneServerFactory.shutdown();
-    Utils.rm(zklogdir);
+    Utils.rm(new File(baseDir, zkdir));
   }
 
   public void startKafkaServer()
   {
     Properties props = new Properties();
     props.setProperty("broker.id", "0");
-    props.setProperty("log.dirs", kafkalogdir);
+    props.setProperty("log.dirs", new File(baseDir, kafkadir1).toString());
     props.setProperty("zookeeper.connect", "localhost:"+TEST_ZOOKEEPER_PORT);
     props.setProperty("port", ""+TEST_KAFKA_BROKER1_PORT);
     if(hasMultiPartition){
@@ -103,14 +107,14 @@ public class KafkaOperatorTestBase
     kserver.startup();
     if(hasMultiPartition){
       props.setProperty("broker.id", "1");
-      props.setProperty("log.dirs", kafkalogdir2);
+      props.setProperty("log.dirs", new File(baseDir, kafkadir2).toString());
       props.setProperty("port", "" + TEST_KAFKA_BROKER2_PORT);
       props.setProperty("num.partitions", "2");
       props.setProperty("default.replication.factor", "2");
       kserver2 = new KafkaServerStartable(new KafkaConfig(props));
       kserver2.startup();
     }
-    
+
   }
 
   public void stopKafkaServer()
@@ -118,11 +122,11 @@ public class KafkaOperatorTestBase
     if(hasMultiPartition){
       kserver2.shutdown();
       kserver2.awaitShutdown();
-      Utils.rm(kafkalogdir2);
+      Utils.rm(new File(baseDir, kafkadir2));
     }
     kserver.shutdown();
     kserver.awaitShutdown();
-    Utils.rm(kafkalogdir);
+    Utils.rm(new File(baseDir, kafkadir1));
   }
 
   @Before
@@ -131,21 +135,21 @@ public class KafkaOperatorTestBase
     try {
       startZookeeper();
       startKafkaServer();
-      createTestTopic();
+      createTopic(TEST_TOPIC);
     }
     catch (java.nio.channels.CancelledKeyException ex) {
       logger.debug("LSHIL {}", ex.getLocalizedMessage());
     }
   }
 
-  private void createTestTopic()
+  public void createTopic(String topicName)
   {
-    String[] args = new String[8];
+    String[] args = new String[9];
     args[0] = "--zookeeper";
     args[1] = "localhost:" + TEST_ZOOKEEPER_PORT;
-    args[2] = "--replica";
+    args[2] = "--replication-factor";
     args[3] = "1";
-    args[4] = "--partition";
+    args[4] = "--partitions";
     if(hasMultiPartition){
       args[5] = "2";
     } else {
@@ -153,7 +157,9 @@ public class KafkaOperatorTestBase
     }
     args[6] = "--topic";
     args[7] = TEST_TOPIC;
-    CreateTopicCommand.main(args);
+    args[8] = "--create";
+    
+    TopicCommand.main(args);
     //Right now, there is no programmatic synchronized way to create the topic. have to wait 2 sec to make sure the topic is created
     // So the tests will not hit any bizarre failure
     try {
@@ -174,7 +180,7 @@ public class KafkaOperatorTestBase
       logger.debug("LSHIL {}", ex.getLocalizedMessage());
     }
   }
-  
+
   public void setHasMultiPartition(boolean hasMultiPartition)
   {
     this.hasMultiPartition = hasMultiPartition;
