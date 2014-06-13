@@ -138,7 +138,6 @@ public abstract class AbstractHdfsFileOutputOperator<INPUT> extends BaseOperator
       throw new RuntimeException(ex);
     }
     fs = null;
-    filePath = null;
     append = false;
   }
 
