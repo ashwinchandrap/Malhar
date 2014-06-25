@@ -24,6 +24,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.datatorrent.lib.testbench.CollectorTestSink;
+import com.google.common.collect.Lists;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Tests {@link JsonMapperOperator}
@@ -65,6 +68,49 @@ public class JsonMapperOperatorTest
     HashMap<String, String> obj = (HashMap<String, String>)objectSink.collectedTuples.get(510);
     Assert.assertEquals("emitted tuple", "country", obj.get("name"));
     Assert.assertEquals("emitted tuple", "usa", obj.get("value"));
+  }
+
+  @Test
+  public void testJsonStringToList() throws IOException
+  {
+    JsonMapperOperator<String, List<Long>> oper = new JsonMapperOperator<String, List<Long>>();
+
+    oper.setOutputClassName("java.util.List");
+    oper.setup(null);
+    CollectorTestSink objectSink = new CollectorTestSink();
+    oper.output.setSink(objectSink);
+
+    ObjectMapper mapper = new ObjectMapper(new JsonFactory());
+
+    oper.beginWindow(0);
+
+    List<Long> list = Lists.newArrayList();
+    list.add(1L);
+    list.add(2L);
+    list.add(Long.MAX_VALUE);
+
+    // input test json string
+    String inputJson = mapper.writeValueAsString(list);
+
+    // run the operator for the same string 1000 times
+    int numtuples = 1000;
+    for (int i = 0; i < numtuples; i++) {
+      oper.input.process(inputJson);
+    }
+
+    oper.endWindow();
+
+    System.out.println(objectSink.collectedTuples);
+    System.out.println("long max = " + Long.MAX_VALUE);
+    // assert that the number of the tuples operator generates is 1000
+    Assert.assertEquals("number emitted tuples", numtuples, objectSink.collectedTuples.size());
+
+    // assert that value for one of the keys in any one of the objects from mapSink is as expected
+    List<Number> obj = (List<Number>)objectSink.collectedTuples.get(510);
+    Assert.assertEquals("emitted tuple", 1L, obj.get(0).longValue());
+    Assert.assertEquals("emitted tuple", 2L, obj.get(1).longValue());
+    Assert.assertEquals("emitted tuple", Long.MAX_VALUE , obj.get(2).longValue());
+    Assert.assertEquals("emitted tuple", 3, obj.size());
   }
 
   @Test
