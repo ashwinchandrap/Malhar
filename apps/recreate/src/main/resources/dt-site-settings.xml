@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2012-2014 Malhar, Inc.
+ All Rights Reserved.
+-->
+  <property>
+    <name>dt.application.recreateApp.class</name>
+    <value>com.datatorrent.FSWriter.RecreateApp</value>
+  </property>
+  <property>
+    <name>dt.application.recreateApp.operator.writer.filePath</name>
+    <value>/user/ashwin/recreate/files</value>
+  </property>
+  <property>
+    <name>dt.application.recreateApp.operator.writer.maxLength</name>
+    <value>134217728</value><!-- 128MB-->
+  </property>
+  <property>
+    <name>dt.application.recreateApp.operator.writer.append</name>
+    <value>true</value>
+  </property>
