@@ -13,7 +13,7 @@
 
   <!-- change these to the appropriate values -->
   <name>Benchmark</name>
-  <description>My DataTorrent Application Description</description>
+  <description>Benchmark applications package</description>
 
   <properties>
     <!-- change this if you desire to use a different version of DataTorrent -->
@@ -139,42 +139,6 @@
   </build>
 
   <dependencies>
-    <!-- add your dependencies here -->
-    <!--dependency>
-      <groupId>com.datatorrent</groupId>
-      <artifactId>malhar-library</artifactId>
-      <version>${datatorrent.version}</version-->
-      <!--
-           If you know your application do not need the transitive dependencies that are pulled in by malhar-library,
-           Uncomment the following to reduce the size of your app package.
-      -->
-      <!--
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-      -->
-    <!--/dependency-->
-    <!--dependency>
-      <groupId>com.datatorrent</groupId>
-      <artifactId>dt-engine</artifactId>
-      <version>${datatorrent.version}</version>
-      <scope>provided</scope>
-    </dependency-->
-    <!--dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.10</version>
-      <scope>test</scope>
-    </dependency-->
-    <!--dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>dt-api</artifactId>
-      <version>${dt.framework.version}</version>
-      <scope>provided</scope>
-    </dependency-->
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>malhar-library</artifactId>

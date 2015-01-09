@@ -33,8 +33,6 @@ import com.datatorrent.contrib.kafka.HighlevelKafkaConsumer;
 import com.datatorrent.contrib.kafka.KafkaConsumer;
 import com.datatorrent.contrib.kafka.SimpleKafkaConsumer;
 import com.google.common.collect.Sets;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The stream app to test the benckmark of kafka
@@ -64,7 +62,7 @@ public class KafkaInputBenchmark implements StreamingApplication
   public void populateDAG(DAG dag, Configuration conf)
   {
 
-    //dag.setAttribute(DAG.APPLICATION_NAME, "KafkaInputOperatorPartitionDemo");
+    dag.setAttribute(DAG.APPLICATION_NAME, "KafkaInputOperatorPartitionDemo");
     BenchmarkPartitionableKafkaInputOperator bpkio = new BenchmarkPartitionableKafkaInputOperator();
 
 
@@ -86,9 +84,6 @@ public class KafkaInputBenchmark implements StreamingApplication
       consumer = new SimpleKafkaConsumer(null, 10000, 100000, "test_kafka_autop_client", new HashSet<Integer>());
     }
 
-    logger.debug("configuration broker list kafka.brokerlist = {}", conf.get("kafka.brokerlist"));
-    logger.debug("configuration broker list dt.kafka.brokerlist = {}", conf.get("dt.kafka.brokerlist"));
-    logger.debug("configuration broker dt.operator.KafkaBenchmarkProducer.consumer.topic = {}", conf.get("dt.operator.KafkaBenchmarkProducer.consumer.topic"));
     consumer.setBrokerSet(Sets.newHashSet(conf.get("dt.kafka.brokerlist").split("\\s*,\\s*")));
     bpkio.setInitialPartitionCount(1);
     //bpkio.setTuplesBlast(1024 * 1024);
@@ -103,7 +98,5 @@ public class KafkaInputBenchmark implements StreamingApplication
 
 
   }
-
-  private static final Logger logger = LoggerFactory.getLogger(KafkaInputBenchmark.class);
 
 }
