@@ -16,6 +16,11 @@
     <name>kafka.brokerlist</name>
     <value>localhost:9092</value>
   </property>
+  <property>
+    <name>dt.kafka.brokerlist</name>
+    <value>localhost:9092</value>
+  </property>
+
 
 </configuration>
 
