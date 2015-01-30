@@ -70,8 +70,8 @@ public abstract class AbstractReconciler<INPUT, QUEUETUPLE> extends BaseOperator
   private Map<Long, List<QUEUETUPLE>> currentWindowTuples = Maps.newConcurrentMap();
   private Queue<Long> currentWindows = Queues.newLinkedBlockingQueue();
   private Queue<List<QUEUETUPLE>> committedTuples = Queues.newLinkedBlockingQueue();
-  private transient volatile boolean execute;
-  private transient AtomicReference<Throwable> cause;
+  protected transient volatile boolean execute;
+  protected transient AtomicReference<Throwable> cause;
 
   @Override
   public void setup(Context.OperatorContext context)
