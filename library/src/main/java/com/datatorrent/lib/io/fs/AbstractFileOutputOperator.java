@@ -165,7 +165,7 @@ public abstract class AbstractFileOutputOperator<INPUT> extends BaseOperator
   /**
    * This is the operator context passed at setup.
    */
-  private transient OperatorContext context;
+  protected transient OperatorContext context;
 
   /**
    * Last time stamp collected.
@@ -180,7 +180,7 @@ public abstract class AbstractFileOutputOperator<INPUT> extends BaseOperator
   /**
    * File output counters.
    */
-  private final BasicCounters<MutableLong> fileCounters = new BasicCounters<MutableLong>(MutableLong.class);
+  protected final BasicCounters<MutableLong> fileCounters = new BasicCounters<MutableLong>(MutableLong.class);
 
   protected StreamCodec<INPUT> streamCodec;
 
