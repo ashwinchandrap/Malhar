@@ -26,7 +26,7 @@ import java.lang.reflect.InvocationTargetException;
 public class JaninoRulesOperator extends BaseOperator
 {
   public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
-  ExpressionEvaluator ee;
+  private transient ExpressionEvaluator ee;
 
   @Override
   public void setup(OperatorContext context)
