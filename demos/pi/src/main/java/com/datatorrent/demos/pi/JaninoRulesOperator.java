@@ -27,22 +27,28 @@ public class JaninoRulesOperator extends BaseOperator
 {
   public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
   private transient ExpressionEvaluator ee;
+  private String expression = "a > b ? a : b";
 
   @Override
   public void setup(OperatorContext context)
   {
+    createExpression();
+  }
+
+  private void createExpression() {
     try {
       ee = new ExpressionEvaluator(
-              "c > d ? c : d", // expression
+              expression, // expression
               int.class, // expressionType
-              new String[] {"c", "d"}, // parameterNames
-              new Class[] {int.class, int.class} // parameterTypes
+              new String[] {"a", "b", "c", "d", "e"}, // parameterNames
+              new Class[] {int.class, int.class, int.class, int.class, int.class} // parameterTypes
               );
     }
     catch (CompileException ex) {
-      logger.error("uh oh!! ",ex);
+      logger.error("uh oh!! ", ex);
       DTThrowable.rethrow(ex);
     }
+
   }
 
   public final transient DefaultInputPort<Integer> input = new DefaultInputPort<Integer>()
@@ -51,9 +57,13 @@ public class JaninoRulesOperator extends BaseOperator
     public void process(Integer tuple)
     {
       try {
-        Object[] vals = new Object[2];
+        Object[] vals = new Object[5];
         vals[0] = tuple;
-        vals[1] = 50;
+        vals[1] = 30;
+        vals[2] = 40;
+        vals[3] = 50;
+        vals[4] = 60;
+
         int result = (Integer)ee.evaluate(vals);
         output.emit(String.valueOf(result));
       }
@@ -63,5 +73,18 @@ public class JaninoRulesOperator extends BaseOperator
     }
 
   };
+
+  public String getExpression()
+  {
+    return expression;
+  }
+
+  public void setExpression(String expression)
+  {
+    logger.info("setting expression :: ", expression);
+    this.expression = expression;
+  }
+
+
   private static final Logger logger = LoggerFactory.getLogger(JaninoRulesOperator.class);
 }
