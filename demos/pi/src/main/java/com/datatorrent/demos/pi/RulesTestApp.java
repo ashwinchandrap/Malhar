@@ -23,7 +23,8 @@ public class RulesTestApp implements StreamingApplication
   {
     RandomEventGenerator generator = dag.addOperator("NumberGenerator", new RandomEventGenerator());
 
-    RulesOperator rules = dag.addOperator("Rules", new RulesOperator());
+    //JaninoRulesOperator rules = dag.addOperator("Rules", new JaninoRulesOperator());
+    EasyRulesOperator rules = dag.addOperator("Rules", new EasyRulesOperator());
 
     ConsoleOutputOperator console = dag.addOperator("Console", new ConsoleOutputOperator());
 

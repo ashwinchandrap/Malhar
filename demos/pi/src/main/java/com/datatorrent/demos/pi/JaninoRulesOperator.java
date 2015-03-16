@@ -23,7 +23,7 @@ import java.lang.reflect.InvocationTargetException;
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
-public class RulesOperator extends BaseOperator
+public class JaninoRulesOperator extends BaseOperator
 {
   public final transient DefaultOutputPort<String> output = new DefaultOutputPort<String>();
   ExpressionEvaluator ee;
@@ -63,5 +63,5 @@ public class RulesOperator extends BaseOperator
     }
 
   };
-  private static final Logger logger = LoggerFactory.getLogger(RulesOperator.class);
+  private static final Logger logger = LoggerFactory.getLogger(JaninoRulesOperator.class);
 }
