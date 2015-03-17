@@ -17,6 +17,7 @@ import com.datatorrent.api.DefaultInputPort;
 import com.datatorrent.api.DefaultOutputPort;
 import com.datatorrent.common.util.DTThrowable;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.Boolean;
 
 /**
  *
@@ -62,7 +63,7 @@ public class JaninoRulesOperator extends BaseOperator
     {
       try {
         Object[] vals = getParameterVals(tuple);
-        int result = (Integer)ee.evaluate(vals);
+        boolean result = (Boolean)ee.evaluate(vals);
         output.emit(String.valueOf(result));
       }
       catch (InvocationTargetException ex) {
@@ -74,12 +75,12 @@ public class JaninoRulesOperator extends BaseOperator
 
   private Object[] getParameterVals(Integer tuple)
   {
-    Object[] vals = new Object[5];
+    Object[] vals = new Object[6];
     vals[0] = tuple;
-    vals[1] = 30;
-    vals[2] = 40;
-    vals[3] = 50;
-    vals[4] = 60;
+    vals[1] = 1;
+    vals[2] = 2;
+    vals[3] = 3;
+    vals[4] = 40;
     vals[5] = range;
     return vals;
   }

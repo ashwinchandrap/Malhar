@@ -11,7 +11,7 @@ import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.testbench.RandomEventGenerator;
 import java.util.Random;
 import org.apache.hadoop.conf.Configuration;
-
+import com.datatorrent.demos.pi.JaninoRulesOperator.Range;
 /**
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
@@ -28,10 +28,14 @@ public class RulesTestApp implements StreamingApplication
     JaninoRulesOperator rules = dag.addOperator("Rules", new JaninoRulesOperator());
     //EasyRulesOperator rules = dag.addOperator("Rules", new EasyRulesOperator());
 
+    Range range = new Range();
+    range.setRange("1:2:3:4:5");
+    rules.setRange(range);
+
     rules.setParameterNames("a:b:c:d:e:range");
     rules.setParameterTypes("int:int:int:int:int:com.datatorrent.demos.pi.JaninoRulesOperator$Range");
     rules.setReturnType("boolean");
-    rules.setExpression("a > b ? a : b");
+    rules.setExpression("a > b ? true : false");
     /*
      int.class, // expressionType
      new String[] {"a", "b", "c", "d", "e"}, // parameterNames
