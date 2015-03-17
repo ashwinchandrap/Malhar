@@ -23,9 +23,19 @@ public class RulesTestApp implements StreamingApplication
   {
     RandomEventGenerator generator = dag.addOperator("NumberGenerator", new RandomEventGenerator());
 
-    //JaninoRulesOperator rules = dag.addOperator("Rules", new JaninoRulesOperator());
-    EasyRulesOperator rules = dag.addOperator("Rules", new EasyRulesOperator());
+    JaninoRulesOperator rules = dag.addOperator("Rules", new JaninoRulesOperator());
+    //EasyRulesOperator rules = dag.addOperator("Rules", new EasyRulesOperator());
 
+    rules.setParameterNames("a:b:c:d:e:range");
+    rules.setParameterTypes("int:int:int:int:int:com.datatorrent.demos.pi.JaninoRulesOperator$Range");
+    rules.setReturnType("boolean");
+    rules.setExpression("a > b ? a : b");
+    /*
+     int.class, // expressionType
+     new String[] {"a", "b", "c", "d", "e"}, // parameterNames
+     new Class[] {int.class, int.class, int.class, int.class, int.class} // parameterTypes
+     "a > b ? a : b" // expression
+     */
     ConsoleOutputOperator console = dag.addOperator("Console", new ConsoleOutputOperator());
 
     dag.addStream("applyRules", generator.integer_data, rules.input);
