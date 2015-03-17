@@ -13,10 +13,15 @@ import java.util.logging.Logger;
  */
 public class TypeFinder
 {
-  public static Class getType(String type) {
-    if(type.equals("int")) {
+  public static Class getType(String type)
+  {
+    if (type.equals("int")) {
       return int.class;
-    } else {
+    }
+    else if (type.equals("boolean")) {
+      return boolean.class;
+    }
+    else {
       try {
         return Class.forName(type);
       }
@@ -25,4 +30,5 @@ public class TypeFinder
       }
     }
   }
+
 }
