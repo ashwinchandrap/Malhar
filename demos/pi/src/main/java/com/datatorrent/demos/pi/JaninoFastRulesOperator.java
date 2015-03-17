@@ -48,7 +48,7 @@ public class JaninoFastRulesOperator extends BaseOperator
     {
       vals[0] = tuple;
       vals[1] = 50;
-      foo.bar(vals);
+      output.emit(String.valueOf(foo.bar(vals)));
     }
 
   };
