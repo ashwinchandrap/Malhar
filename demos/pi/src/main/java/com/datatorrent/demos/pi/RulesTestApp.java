@@ -6,6 +6,7 @@ package com.datatorrent.demos.pi;
 
 import com.datatorrent.api.DAG;
 import com.datatorrent.api.StreamingApplication;
+import com.datatorrent.api.annotation.ApplicationAnnotation;
 import com.datatorrent.lib.io.ConsoleOutputOperator;
 import com.datatorrent.lib.testbench.RandomEventGenerator;
 import java.util.Random;
@@ -15,6 +16,7 @@ import org.apache.hadoop.conf.Configuration;
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
+@ApplicationAnnotation(name = "RulesTest")
 public class RulesTestApp implements StreamingApplication
 {
 
