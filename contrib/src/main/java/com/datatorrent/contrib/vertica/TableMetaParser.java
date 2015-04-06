@@ -23,12 +23,12 @@ public abstract class TableMetaParser
 
   public String getCountQuery(String table, String[] columns)
   {
-    return null;
+    return JdbcSqlBuilder.buildCountSql(table, columns);
   }
 
   public String getInsertQuery(String table, String[] columns)
   {
-    return null;
+    return JdbcSqlBuilder.buildInsertSql(table, columns);
   }
 
   public static class TablePropertyFileParser extends TableMetaParser
