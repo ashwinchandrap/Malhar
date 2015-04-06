@@ -10,8 +10,9 @@ package com.datatorrent.contrib.vertica;
  */
 public class FileMeta
 {
-  String fileName;
-  long offset;
-  long length;
-  int numLines;
+  public String fileName;
+  public long offset;
+  public long length;
+  public int numLines;
+  public String tableName;
 }

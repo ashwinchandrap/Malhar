@@ -164,6 +164,7 @@ public abstract class AbstractReconciler<INPUT, QUEUETUPLE> extends BaseOperator
               processCommittedData(output);
             }
             committedTuples.remove();
+            processedCommittedData();
           }
         }
         catch (Throwable e) {
@@ -200,4 +201,15 @@ public abstract class AbstractReconciler<INPUT, QUEUETUPLE> extends BaseOperator
    * @param queueInput
    */
   protected abstract void processCommittedData(QUEUETUPLE queueInput);
+
+  /**
+   * Call back method for implemented operators to learn that QUEUETUPLE is processed
+   */
+  protected void processedCommittedData() {
+    // empty
+  }
+
+  public int getQueueSize() {
+    return committedTuples.size();
+  }
 }
