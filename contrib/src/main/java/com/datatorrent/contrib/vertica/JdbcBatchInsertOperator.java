@@ -33,8 +33,9 @@ import com.datatorrent.lib.db.jdbc.JdbcStore;
 import com.datatorrent.api.Context.OperatorContext;
 
 import com.datatorrent.common.util.DTThrowable;
-import com.datatorrent.contrib.vertica.JdbcBatchInsertOperator.Batch;
+import com.datatorrent.contrib.vertica.Batch;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
@@ -53,7 +54,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
   private String delimiter = "\\|";
   private Map<String, Batch> partialBatchesHolder = Maps.newHashMap(); // holds partial new partial batches to be held temporarily generated batches are committed.
   private JdbcStore store = new JdbcStore();
-  private transient Map<String, TableMeta> tables; // table --> table meta
+  private transient Map<String, TableMeta> tables; // tableName --> tableName meta
   @NotNull
   private transient TableMetaParser parser;
 
@@ -108,7 +109,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       if (rows.size() - batchStart < batchSize) {
         batchEnd = rows.size();
         Batch newPartialBatch = new Batch();
-        newPartialBatch.table = queueTuple.tableName;
+        newPartialBatch.tableName = queueTuple.tableName;
         newPartialBatch.rows = rows.subList(batchStart, batchEnd);
         partialBatchesHolder.put(queueTuple.tableName, newPartialBatch);
       }
@@ -116,7 +117,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
         batchEnd = batchStart + batchSize;
         Batch batch = new Batch();
         batch.rows = rows.subList(batchStart, batchEnd);
-        batch.table = queueTuple.tableName;
+        batch.tableName = queueTuple.tableName;
 
         insertBatches.add(batch);
       }
@@ -147,7 +148,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     PreparedStatement stmt = null;
     Savepoint savepoint = null;
     try {
-      String insertSql = tables.get(batch.table).insertSql;
+      String insertSql = tables.get(batch.tableName).insertSql;
       logger.debug("insert sql = {}", insertSql);
       savepoint = store.getConnection().setSavepoint();
       stmt = store.getConnection().prepareStatement(insertSql);
@@ -211,7 +212,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
   protected boolean ensureBatchNotExecuted(Batch batch)
   {
     try {
-      TableMeta tableMeta = tables.get(batch.table);
+      TableMeta tableMeta = tables.get(batch.tableName);
       PreparedStatement stmt = store.getConnection().prepareStatement(tableMeta.countSql);
       String[] row = batch.rows.get(0);
         for (int i = 0; i < row.length; i++) {
@@ -352,12 +353,6 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
   public void setDelimiter(String delimiter)
   {
     this.delimiter = delimiter;
-  }
-
-  public static class Batch
-  {
-    String table;
-    List<String[]> rows;
   }
 
   public static class TableMeta {

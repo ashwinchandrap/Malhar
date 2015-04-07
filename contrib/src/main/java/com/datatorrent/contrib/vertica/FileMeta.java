@@ -15,4 +15,5 @@ public class FileMeta
   public long length;
   public int numLines;
   public String tableName;
+  public int tableId;
 }

@@ -19,7 +19,6 @@ import com.datatorrent.lib.io.fs.AbstractReconciler;
 import com.datatorrent.api.Context.OperatorContext;
 
 import com.datatorrent.common.util.NameableThreadFactory;
-import com.datatorrent.contrib.vertica.JdbcBatchInsertOperator.Batch;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
