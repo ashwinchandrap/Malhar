@@ -8,16 +8,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.sql.*;
 import java.sql.BatchUpdateException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.validation.constraints.NotNull;
 
-import com.beust.jcommander.internal.Maps;
 import com.google.common.collect.Lists;
 
 import org.slf4j.Logger;
@@ -31,13 +32,11 @@ import org.apache.hadoop.fs.Path;
 import com.datatorrent.lib.db.jdbc.JdbcStore;
 
 import com.datatorrent.api.Context.OperatorContext;
+import com.datatorrent.api.DAG;
 
 import com.datatorrent.common.util.DTThrowable;
-import com.datatorrent.contrib.vertica.Batch;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Map.Entry;
-import java.util.logging.Level;
+import com.google.common.collect.Maps;
+import java.util.Arrays;
 
 /**
  *
@@ -56,7 +55,9 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
   private JdbcStore store = new JdbcStore();
   private transient Map<String, TableMeta> tables; // tableName --> tableName meta
   @NotNull
-  private transient TableMetaParser parser;
+  private TableMetaParser parser;
+  private String tableMappingFile;
+  private String applicationId = null;
 
   @Override
   public void setup(OperatorContext context)
@@ -64,6 +65,10 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     super.setup(context);
     try {
       fs = FileSystem.newInstance((new Path(filePath)).toUri(), new Configuration());
+      if (applicationId == null) {
+        applicationId = context.getValue(DAG.APPLICATION_ID);
+        filePath = filePath + "/" + applicationId;
+      }
     }
     catch (IOException ex) {
       throw new RuntimeException(ex);
@@ -77,7 +82,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       throw new RuntimeException(ex);
     }
 
-    tables = parser.extractTableMeta();
+    tables = parser.extractTableMeta(tableMappingFile);
   }
 
   @Override
@@ -89,7 +94,8 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
   @Override
   protected List<Batch> generateBatches(FileMeta queueTuple)
   {
-    List<String[]> newRows = fetchRows(queueTuple);
+    jbioLogger.debug("queue tuple file meta = {}", queueTuple);
+    List<String[]> newRows = fetchRowsFromFile(queueTuple);
     Batch existingPartialBatch = partialBatches.get(queueTuple.tableName);
 
     List<String[]> rows;
@@ -110,13 +116,16 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
         batchEnd = rows.size();
         Batch newPartialBatch = new Batch();
         newPartialBatch.tableName = queueTuple.tableName;
-        newPartialBatch.rows = rows.subList(batchStart, batchEnd);
+        newPartialBatch.rows = Lists.newArrayList();
+        // for kryo, list returned by sublist does not have default constructor!
+        newPartialBatch.rows.addAll(rows.subList(batchStart, batchEnd));
         partialBatchesHolder.put(queueTuple.tableName, newPartialBatch);
       }
       else {
         batchEnd = batchStart + batchSize;
         Batch batch = new Batch();
-        batch.rows = rows.subList(batchStart, batchEnd);
+        batch.rows = Lists.newArrayList();
+        batch.rows.addAll(rows.subList(batchStart, batchEnd));
         batch.tableName = queueTuple.tableName;
 
         insertBatches.add(batch);
@@ -132,7 +141,8 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
    * the batches before partial batch are not processed yet before operator failure.
    */
   @Override
-  protected void processedCommittedData() {
+  protected void processedCommittedData()
+  {
     for (Entry<String, Batch> entry : partialBatchesHolder.entrySet()) {
       String string = entry.getKey();
       Batch batch = entry.getValue();
@@ -148,16 +158,24 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     PreparedStatement stmt = null;
     Savepoint savepoint = null;
     try {
-      String insertSql = tables.get(batch.tableName).insertSql;
-      logger.debug("insert sql = {}", insertSql);
+      TableMeta table = tables.get(batch.tableName);
+      String insertSql = table.insertSql;
+      jbioLogger.debug("insert sql = {}", insertSql);
       savepoint = store.getConnection().setSavepoint();
       stmt = store.getConnection().prepareStatement(insertSql);
 
-      logger.debug("prepared statement = {}", stmt);
+      jbioLogger.debug("prepared statement = {}", stmt);
 
-      for (String[] strings : batch.rows) {
-        for (int i = 0; i < strings.length; i++) {
-          stmt.setObject(i + 1, strings[i]);
+      for (String[] values : batch.rows) {
+        //logger.debug("adding tuple to batch: {}", Arrays.asList(values));
+        for (int i = 0; i < values.length; i++) {
+          if (values[i].isEmpty()) {
+            stmt.setNull(i + 1, table.types[i]);
+          }
+          else {
+            //logger.debug("setting index {} with value {}", i, values[i]);
+            stmt.setObject(i + 1, values[i], table.types[i]);
+          }
         }
 
         stmt.addBatch();
@@ -167,7 +185,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       store.getConnection().commit();
     }
     catch (BatchUpdateException batchEx) {
-      logger.error("batch update exception: ", batchEx);
+      jbioLogger.error("batch update exception: ", batchEx);
       try {
         store.getConnection().rollback(savepoint);
       }
@@ -178,7 +196,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       throw new RuntimeException(batchEx);
     }
     catch (SQLException ex) {
-      logger.error("sql exception: ", ex);
+      jbioLogger.error("sql exception: ", ex);
       try {
         store.getConnection().rollback(savepoint);
       }
@@ -188,7 +206,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       throw new RuntimeException(ex);
     }
     catch (Exception ex) {
-      logger.error("exception: ", ex);
+      jbioLogger.error("exception: ", ex);
       DTThrowable.rethrow(ex);
     }
     finally {
@@ -198,7 +216,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
         }
       }
       catch (SQLException ex) {
-        logger.error("sql exception: ", ex);
+        jbioLogger.error("sql exception: ", ex);
         throw new RuntimeException(ex);
       }
     }
@@ -206,6 +224,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
 
   /**
    * Check to see if the first tuple of th batch is already inserted in the database
+   *
    * @param batch
    */
   @Override
@@ -215,9 +234,13 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       TableMeta tableMeta = tables.get(batch.tableName);
       PreparedStatement stmt = store.getConnection().prepareStatement(tableMeta.countSql);
       String[] row = batch.rows.get(0);
-        for (int i = 0; i < row.length; i++) {
-          stmt.setObject(i + 1, row[i]);
-        }
+
+      jbioLogger.debug("looking up if tuple exists for table: {} and tuple: {} sql: {}", batch.tableName, Arrays.asList(row), tableMeta.countSql);
+
+      for (int i = 0; i < row.length; i++) {
+        jbioLogger.debug("setting value {} at index {}", row[i], i);
+        stmt.setObject(i + 1, row[i]);
+      }
 
       ResultSet resultSet = stmt.executeQuery();
       return resultSet.first();
@@ -229,7 +252,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     return false;
   }
 
-  protected List<String[]> fetchRows(FileMeta fileMeta)
+  protected List<String[]> fetchRowsFromFile(FileMeta fileMeta)
   {
     List<String[]> rows;
 
@@ -242,7 +265,7 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
       }
       catch (IOException ioEx) {
         // wait for some time and retry again as upstream operator might be recovering the file in case of failure failure
-        logger.error("exception while reading file {} will retry in {} ms \n exception: ", fileMeta.fileName, fsRetryWaitMillis, ioEx);
+        jbioLogger.error("exception while reading file {} will retry in {} ms \n exception: ", fileMeta.fileName, fsRetryWaitMillis, ioEx);
         if (retryNum-- > 0) {
           try {
             Thread.sleep(fsRetryWaitMillis);
@@ -252,12 +275,12 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
           }
         }
         else {
-          logger.error("no more retries, giving up reading the file! {}: ", fileMeta);
+          jbioLogger.error("no more retries, giving up reading the file! {}: ", fileMeta);
           return null;
         }
       }
       catch (Exception ex) {
-        logger.error("exception: ", ex);
+        jbioLogger.error("exception: ", ex);
       }
     }
   }
@@ -267,21 +290,21 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     BufferedReader bufferedReader = null;
     try {
       Path path = new Path(filePath + File.separator + fileMeta.fileName);
-      logger.debug("path = {}", path);
+      jbioLogger.debug("path = {}", path);
       FSDataInputStream inputStream = fs.open(path);
       inputStream.seek(fileMeta.offset);
 
       bufferedReader = new BufferedReader(new InputStreamReader(inputStream), 1024 * 1024);
 
       List<String[]> rows = Lists.newArrayList();
-      logger.debug("reading {} rows from file {}", fileMeta.numLines, path);
+      jbioLogger.debug("reading {} rows from file {}", fileMeta.numLines, path);
       for (int lineNum = 0; lineNum < fileMeta.numLines; lineNum++) {
         String line = bufferedReader.readLine();
-        String[] row = line.split(delimiter);
+        String[] row = line.split(delimiter, -1);
         rows.add(row);
       }
 
-      logger.debug("all rows added...row list size = {}", rows.size());
+      jbioLogger.debug("all rows added...row list size = {}", rows.size());
       return rows;
     }
     finally {
@@ -355,11 +378,34 @@ public class JdbcBatchInsertOperator<FILEMETA extends FileMeta> extends Abstract
     this.delimiter = delimiter;
   }
 
-  public static class TableMeta {
-    String tableName;
-    String insertSql;
-    String countSql;
+  public TableMetaParser getParser()
+  {
+    return parser;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(JdbcBatchInsertOperator.class);
+  public void setParser(TableMetaParser parser)
+  {
+    this.parser = parser;
+  }
+
+  public String getTableMappingFile()
+  {
+    return tableMappingFile;
+  }
+
+  public void setTableMappingFile(String tableMappingFile)
+  {
+    this.tableMappingFile = tableMappingFile;
+  }
+
+  public static class TableMeta
+  {
+    public String tableName;
+    public String insertSql;
+    public String countSql;
+    public String[] columns;
+    public int[] types;
+  }
+
+  private static final Logger jbioLogger = LoggerFactory.getLogger(JdbcBatchInsertOperator.class);
 }

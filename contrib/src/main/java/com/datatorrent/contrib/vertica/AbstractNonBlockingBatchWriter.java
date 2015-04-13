@@ -4,7 +4,6 @@
  */
 package com.datatorrent.contrib.vertica;
 
-import com.beust.jcommander.internal.Maps;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,9 +19,11 @@ import com.datatorrent.api.Context.OperatorContext;
 
 import com.datatorrent.common.util.NameableThreadFactory;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * This is used when writing batches to the external system is slower than the generation of the batch
@@ -33,9 +34,9 @@ import java.util.Map.Entry;
  */
 public abstract class AbstractNonBlockingBatchWriter<INPUT, QUEUETUPLE, BATCH> extends AbstractReconciler<INPUT, QUEUETUPLE>
 {
-  private ExecutorService batchExecute;
+  private transient ExecutorService batchExecute;
   // upto three batches will be available for external writer
-  private ArrayBlockingQueue<BATCH> batchQueue = Queues.newArrayBlockingQueue(3);
+  private BlockingQueue<BATCH> batchQueue = Queues.newLinkedBlockingQueue(3);
   protected Map<String, BATCH> partialBatches = Maps.newHashMap(); // table -- > partial batches, used to cache spillover batches which have less than batchSize numbe of rows;
   protected int batchSize = 10000;
   protected int batchFinalizeWindowCount = 10;
@@ -79,12 +80,15 @@ public abstract class AbstractNonBlockingBatchWriter<INPUT, QUEUETUPLE, BATCH> e
       public void run()
       {
         try {
-          while (execute && !batchQueue.isEmpty()) {
+          while (execute) {
+            while (batchQueue.isEmpty()) {
+              Thread.sleep(spinningTime);
+            }
 
             BATCH batch = batchQueue.peek();
-            if(ensureBatchNotExecuted(batch)) {
+            //if(ensureBatchNotExecuted(batch)) {
               executeBatch(batch);
-            }
+            //}
 
             batchQueue.remove();
           }
@@ -181,5 +185,5 @@ public abstract class AbstractNonBlockingBatchWriter<INPUT, QUEUETUPLE, BATCH> e
     this.batchFinalizeWindowCount = batchFinalizeWindowCount;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractNonBlockingBatchWriter.class);
+  private static final Logger anbbwLogger = LoggerFactory.getLogger(AbstractNonBlockingBatchWriter.class);
 }

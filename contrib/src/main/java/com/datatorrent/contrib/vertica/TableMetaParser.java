@@ -19,24 +19,51 @@ import java.util.Properties;
  */
 public abstract class TableMetaParser
 {
-  public abstract Map<String, TableMeta> extractTableMeta();
+  public abstract Map<String, TableMeta> extractTableMeta(String fileName);
 
   public String getCountQuery(String table, String[] columns)
   {
-    return JdbcSqlBuilder.buildCountSql(table, columns);
+    return JdbcUtil.buildCountSql(table, columns);
   }
 
   public String getInsertQuery(String table, String[] columns)
   {
-    return JdbcSqlBuilder.buildInsertSql(table, columns);
+    return JdbcUtil.buildInsertSql(table, columns);
+  }
+
+  protected Properties loadFunctionsFromProperties(String fileName)
+  {
+    InputStream in = null;
+    Properties properties;
+    try {
+      properties = new Properties();
+      in = getClass().getResourceAsStream(fileName);
+      properties.load(in);
+      return properties;
+    }
+    catch (Exception ex) {
+      DTThrowable.rethrow(ex);
+    }
+    finally {
+      if (in != null) {
+        try {
+          in.close();
+        }
+        catch (IOException ex) {
+          DTThrowable.rethrow(ex);
+        }
+      }
+    }
+
+    return null;
   }
 
   public static class TablePropertyFileParser extends TableMetaParser
   {
     @Override
-    public Map<String, TableMeta> extractTableMeta()
+    public Map<String, TableMeta> extractTableMeta(String fileName)
     {
-      Properties properties = loadFunctionsFromProperties();
+      Properties properties = loadFunctionsFromProperties(fileName);
 
       Map<String, TableMeta> tables = Maps.newHashMap();
       for (Entry<Object, Object> entry : properties.entrySet()) {
@@ -49,32 +76,6 @@ public abstract class TableMetaParser
       return tables;
     }
 
-    private Properties loadFunctionsFromProperties()
-    {
-      InputStream in = null;
-      Properties properties;
-      try {
-        properties = new Properties();
-        in = getClass().getResourceAsStream("/com/datatorrent/contrib/vertica/tables.properties");
-        properties.load(in);
-        return properties;
-      }
-      catch (Exception ex) {
-        DTThrowable.rethrow(ex);
-      }
-      finally {
-        if (in != null) {
-          try {
-            in.close();
-          }
-          catch (IOException ex) {
-            DTThrowable.rethrow(ex);
-          }
-        }
-      }
-
-      return null;
-    }
 
     private TableMeta getTable(String key, String value)
     {

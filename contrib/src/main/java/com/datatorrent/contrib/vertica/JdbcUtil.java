@@ -5,12 +5,13 @@
 package com.datatorrent.contrib.vertica;
 
 import com.datatorrent.common.util.Pair;
+import java.sql.Types;
 
 /**
  *
  * @author Ashwin Chandra Putta <ashwin@datatorrent.com>
  */
-public class JdbcSqlBuilder
+public class JdbcUtil
 {
   public static String buildSelectSql(String tableName, String[] selectColumns, String[] whereColumns)
   {
@@ -58,15 +59,55 @@ public class JdbcSqlBuilder
 
     for (String column : columns) {
       if (sb.length() == 0) {
-        sb.append(column).append("=?");
+        sb.append(column).append("=? ");
       }
       else {
-        sb.append("AND ").append(column).append("=?");
+        sb.append("AND ").append(column).append("=? ");
       }
     }
 
     sql.append(sb);
     return sql.toString();
+  }
+
+  public static int getType(String typeString)
+  {
+    int type;
+    if (typeString.trim().toUpperCase().contains("DATE")) {
+      type = Types.DATE;
+    }
+    else if (typeString.trim().toUpperCase().contains("TIMESTAMP")) {
+      type = Types.TIMESTAMP;
+    }
+    else if (typeString.trim().toUpperCase().contains("DECIMAL")) {
+      type = Types.DECIMAL;
+    }
+    else if (typeString.trim().toUpperCase().contains("INTEGER")) {
+      type = Types.INTEGER;
+    }
+    else if (typeString.trim().toUpperCase().contains("NUMERIC")) {
+      type = Types.NUMERIC;
+    }
+    else if (typeString.trim().toUpperCase().contains("BYTEINT")) {
+      type = Types.TINYINT;
+    }
+    else if (typeString.trim().toUpperCase().contains("SMALLINT")) {
+      type = Types.SMALLINT;
+    }
+    else if (typeString.trim().toUpperCase().contains("BIGINT")) {
+      type = Types.BIGINT;
+    }
+    else if (typeString.trim().toUpperCase().contains("VARCHAR")) {
+      type = Types.VARCHAR;
+    }
+    else if (typeString.trim().toUpperCase().contains("CHAR")) {
+      type = Types.CHAR;
+    }
+    else {
+      type = Types.VARCHAR;
+    }
+
+    return type;
   }
 
 }

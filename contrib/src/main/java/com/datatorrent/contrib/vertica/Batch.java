@@ -15,12 +15,12 @@ public class Batch
 {
   public String tableName;
   public int tableId;
-  public List<String[]> rows;
+  public ArrayList<String[]> rows;
 
   @Override
   public String toString()
   {
-    return "Batch{" + "table=" + tableName + ", tableId=" + tableId + ", rows=" + rows + '}';
+    return "Batch{" + "table=" + tableName + ", tableId=" + tableId + ", rows=" + getRowsAsString() + '}';
   }
 
   private String getRowsAsString()

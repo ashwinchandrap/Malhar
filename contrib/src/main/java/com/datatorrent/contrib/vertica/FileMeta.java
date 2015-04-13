@@ -16,4 +16,10 @@ public class FileMeta
   public int numLines;
   public String tableName;
   public int tableId;
+
+  @Override
+  public String toString()
+  {
+    return "FileMeta{" + "fileName=" + fileName + ", offset=" + offset + ", length=" + length + ", numLines=" + numLines + ", tableName=" + tableName + ", tableId=" + tableId + '}';
+  }
 }
