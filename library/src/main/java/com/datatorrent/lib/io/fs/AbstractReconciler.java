@@ -72,8 +72,8 @@ public abstract class AbstractReconciler<INPUT, QUEUETUPLE> extends BaseOperator
   private Queue<Long> currentWindows = Queues.newLinkedBlockingQueue();
   private transient Queue<List<QUEUETUPLE>> doneTuples = Queues.newLinkedBlockingQueue();
   private transient Queue<List<QUEUETUPLE>> waitingTuples = Queues.newLinkedBlockingQueue();
-  private transient volatile boolean execute;
-  private transient AtomicReference<Throwable> cause;
+  protected transient volatile boolean execute;
+  protected transient AtomicReference<Throwable> cause;
   private Queue<List<QUEUETUPLE>> committedTuples = Queues.newLinkedBlockingQueue();
 
   @Override

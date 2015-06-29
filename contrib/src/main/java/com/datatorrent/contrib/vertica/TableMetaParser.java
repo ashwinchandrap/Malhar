@@ -4,8 +4,8 @@
  */
 package com.datatorrent.contrib.vertica;
 
-import com.datatorrent.common.util.DTThrowable;
 import com.datatorrent.contrib.vertica.JdbcBatchInsertOperator.TableMeta;
+import com.datatorrent.netlet.util.DTThrowable;
 import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.InputStream;

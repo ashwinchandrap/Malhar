@@ -33,8 +33,8 @@ import com.datatorrent.lib.db.jdbc.JdbcStore;
 
 import com.datatorrent.api.Context.OperatorContext;
 import com.datatorrent.api.DAG;
+import com.datatorrent.netlet.util.DTThrowable;
 
-import com.datatorrent.common.util.DTThrowable;
 import com.google.common.collect.Maps;
 import java.util.Arrays;
 
